@@ -1,0 +1,39 @@
+{
+  "name": "samuia-live-studio",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.11.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "concurrently -k 'tsx watch apps/server/src/index.ts' 'vite --config apps/studio/vite.config.ts --host 0.0.0.0'",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "tsc --noEmit && vite build --config apps/studio/vite.config.ts && tsup apps/server/src/index.ts --format esm --platform node --target node22 --out-dir apps/server/dist --clean && node scripts/portable.mjs",
+    "build:portable": "node scripts/portable.mjs",
+    "start": "node apps/server/dist/index.js",
+    "test:e2e": "playwright test",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.25.1",
+    "@playwright/test": "^1.51.1",
+    "@types/node": "^22.15.3",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react": "^4.4.1",
+    "concurrently": "^9.1.2",
+    "eslint": "^9.25.1",
+    "globals": "^16.0.0",
+    "prettier": "^3.5.3",
+    "tsx": "^4.19.4",
+    "tsup": "^8.4.0",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.31.1",
+    "vite": "^6.3.4",
+    "vitest": "^3.1.2"
+  }
+}
