@@ -1,3 +1,4 @@
+import { BrowserVoiceProvider, localBrowserVoices } from './browser-voice';
 import { useEffect, useState, type FormEvent } from 'react';
 import {
   MatchSimulationSession,
@@ -27,6 +28,18 @@ export function MatchSimulation({
   const [message, setMessage] = useState('');
   const [side, setSide] = useState<Side>('home');
   const [minute, setMinute] = useState(0);
+  const [voices, setVoices] = useState(localBrowserVoices);
+  const [voiceKey, setVoiceKey] = useState(() =>
+    session.director.voice instanceof BrowserVoiceProvider
+      ? session.director.voice.voiceURI
+      : 'simulation',
+  );
+  useEffect(() => {
+    if (!('speechSynthesis' in window)) return;
+    const update = () => setVoices(localBrowserVoices());
+    window.speechSynthesis.addEventListener('voiceschanged', update);
+    return () => window.speechSynthesis.removeEventListener('voiceschanged', update);
+  }, []);
   const refresh = () => setState(session.snapshot(Date.now()));
   useEffect(() => {
     const timer = setInterval(() => {
@@ -36,6 +49,7 @@ export function MatchSimulation({
     return () => {
       clearInterval(timer);
       session.running = false;
+      session.finishReading();
     };
   }, [session]);
   const act = (fn: () => void) => {
@@ -78,8 +92,9 @@ export function MatchSimulation({
         <b>SIMULATION · Partido completo · Celta – Dépor</b>
         <p>
           Sesión de prueba independiente. El guion usa los motores locales existentes; no consulta
-          resultados ni IA externos. La voz y las señales de animación están simuladas y las
-          imágenes oficiales son referencias estáticas.
+          resultados ni IA externos. Puedes probar la voz simulada o una voz local instalada en tu
+          navegador. Las imágenes oficiales siguen como fallback estático de un futuro avatar
+          animado.
         </p>
       </div>
       {error || session.error ? (
@@ -103,14 +118,16 @@ export function MatchSimulation({
           Siguiente paso
         </button>
         <button
-          disabled={!state.animation.speaking}
+          disabled={!session.director.playback.active}
           onClick={() => act(() => session.finishReading())}
         >
-          Terminar lectura simulada
+          {state.voice.audible ? 'Terminar voz actual' : 'Terminar lectura simulada'}
         </button>
         <button
           onClick={() => {
             session.running = false;
+            session.finishReading();
+            setVoiceKey('simulation');
             const fresh = new MatchSimulationSession();
             setSession(fresh);
             onSessionChange(fresh);
@@ -125,6 +142,7 @@ export function MatchSimulation({
           <input
             type="checkbox"
             checked={session.fast}
+            disabled={voiceKey !== 'simulation'}
             onChange={(e) =>
               act(() => {
                 session.fast = e.target.checked;
@@ -221,11 +239,123 @@ export function MatchSimulation({
                   'Abre el recorrido con Inicio del partido o pulsa Reproducir partido completo.'}
               </p>
               <small>
-                {state.animation.speaking
-                  ? 'Lectura simulada en curso'
-                  : 'Esperando el siguiente evento'}{' '}
+                {state.voice.status === 'paused'
+                  ? 'Voz en pausa'
+                  : state.animation.speaking
+                    ? state.voice.audible
+                      ? 'Voz local en reproducción'
+                      : 'Lectura simulada en curso'
+                    : 'Esperando el siguiente evento'}{' '}
                 · {latest?.source ?? 'Partido sin comenzar'}
               </small>
+            </div>
+          </Panel>
+          <Panel
+            title="Voz y flujo de retransmisión"
+            meta={<span className="badge">TTS ADAPTER</span>}
+          >
+            <div className="settings-body voice-panel">
+              <label>
+                Proveedor de voz
+                <select
+                  aria-label="Proveedor de voz"
+                  value={voiceKey}
+                  disabled={session.director.playback.active || session.running}
+                  onChange={(e) =>
+                    act(() => {
+                      const key = e.target.value;
+                      if (key === 'simulation') session.useSimulatedVoice();
+                      else {
+                        const voice = voices.find((v) => v.voiceURI === key);
+                        if (!voice) throw new Error('Esta voz local ya no está disponible');
+                        session.director.setVoiceProvider(new BrowserVoiceProvider(voice));
+                      }
+                      setVoiceKey(key);
+                    })
+                  }
+                >
+                  <option value="simulation">Simulación local · sin audio</option>
+                  {voices.map((v) => (
+                    <option key={v.voiceURI} value={v.voiceURI}>
+                      {v.name} · {v.lang}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <small>
+                {voices.length
+                  ? 'Selecciona una voz local antes de iniciar el recorrido. El navegador debe permitir sonido.'
+                  : 'Este navegador no ofrece voces locales instaladas. Puedes comprobar todo el flujo con el proveedor simulado.'}
+              </small>
+              <b data-testid="trial-voice-status">{state.voice.status}</b>
+              <span>
+                {session.director.voice.name} · {state.voice.audible ? 'Audio local' : 'Sin audio'}
+              </span>
+              <span data-testid="trial-voice-clock">
+                {(state.voice.positionMs / 1000).toFixed(1)} s / ~
+                {(state.voice.durationMs / 1000).toFixed(1)} s
+              </span>
+              <small>
+                {state.voice.sync === 'audio-visemes'
+                  ? 'Sincronización recibida del proveedor: reloj y visemas'
+                  : 'Visemas aproximados desde texto; sin alineación fonética real'}
+              </small>
+              <div className="animation-gaze-buttons">
+                <button
+                  disabled={state.voice.status !== 'playing'}
+                  onClick={() => act(() => session.director.pauseVoice())}
+                >
+                  Pausar voz
+                </button>
+                <button
+                  disabled={state.voice.status !== 'paused'}
+                  onClick={() => act(() => session.director.resumeVoice())}
+                >
+                  Reanudar voz
+                </button>
+                <button
+                  disabled={!session.director.playback.active}
+                  onClick={() =>
+                    act(() => {
+                      session.running = false;
+                      session.command({ type: 'control', action: 'silence' });
+                    })
+                  }
+                >
+                  Silenciar voz
+                </button>
+              </div>
+              {state.voice.error && (
+                <p role="alert">
+                  {state.voice.error}. Selecciona simulación para seguir sin audio.
+                </p>
+              )}
+              <ol className="broadcast-pipeline" data-testid="trial-pipeline">
+                <li>
+                  Evento → {latest?.source ?? 'Esperando inicio'} · {latest?.sourceIds.length ?? 0}{' '}
+                  fuentes
+                </li>
+                <li>
+                  Partido → {match.minute}′ · {match.score.home}–{match.score.away} ·{' '}
+                  {statusLabels[match.status]}
+                </li>
+                <li>
+                  CommentaryEngine → {latest ? 'Comentario publicado' : 'En espera'} ·{' '}
+                  {latest?.memoryIds.length ?? 0} recuerdos
+                </li>
+                <li>
+                  Emoción → {latest?.decision.emotion ?? 'neutral'} · intensidad{' '}
+                  {latest?.decision.energy ?? 0}%
+                </li>
+                <li>
+                  AvatarAnimationController → {state.animation.animation} · boca{' '}
+                  {Math.round(state.animation.mouth.open * 100)}%
+                </li>
+                <li>
+                  Voz → {state.voice.status} · {state.voice.provider}
+                </li>
+                <li>Interfaz → marcador, comunidad e historial sincronizados</li>
+              </ol>
             </div>
           </Panel>
           <Panel title="Comunidad en directo">

@@ -49,6 +49,7 @@ export interface AvatarSpeech {
   durationMs: number;
   source: 'text-simulation' | 'audio-visemes';
   cues: VisemeCue[];
+  playback?: 'preparing' | 'playing' | 'paused';
   clock?: { positionMs: number; receivedAt: number };
 }
 export interface AvatarAnimationFrame {

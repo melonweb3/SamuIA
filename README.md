@@ -1,6 +1,6 @@
 # SamuIA Live Studio · 0.2
 
-Estudio local de un streamer futbolero con personalidad configurable y memoria por partido. TypeScript + React + Node.js + pnpm, con cuatro encuentros simultáneos, chat, radar, cola de reacciones y director visual. **Datos, respuestas, avatar y voz son simulados. No se conecta ninguna API externa.**
+Estudio local de un streamer futbolero con personalidad configurable y memoria por partido. TypeScript + React + Node.js + pnpm, con cuatro encuentros simultáneos, chat, radar, cola de reacciones y director visual. **Partidos y comentarios generados por el motor local. Avatar con imágenes oficiales como fallback estático. Voz simulada o TTS local opcional del navegador. Sin APIs externas.**
 
 Esta versión reconstruye el MVP descrito en la conversación y añade la personalidad con memoria. No es una recuperación binaria del archivo anterior.
 
@@ -8,9 +8,9 @@ Esta versión reconstruye el MVP descrito en la conversación y añade la person
 
 Descarga **[downloads/SamuIA-Live-Studio.html](downloads/SamuIA-Live-Studio.html)** y abre el archivo guardado con un navegador moderno. Contiene React, estilos y los mismos motores dentro de un único HTML; no necesita servidor ni Internet. En GitHub, usa el botón de descargar el archivo: la vista del código HTML no es la aplicación.
 
-**Para actualizar una copia anterior:** vuelve a descargar el HTML; el archivo guardado en tu ordenador no se actualiza al cambiar GitHub. Guárdalo como `SamuIA-partido-completo-v4.html` y abre ese archivo nuevo. Esta edición muestra **«Partido completo v4»** arriba, incluye los cinco fondos originales y permite elegirlos en **Ajustes → Escenario del comentarista → Setup principal**. Incluye cinco composiciones con personaje y habitación unidos en una imagen por escena, sin marco ni fondo blanco. Si no ves ese indicador, estás abriendo otra edición.
+**Para actualizar una copia anterior:** vuelve a descargar el HTML; el archivo guardado en tu ordenador no se actualiza al cambiar GitHub. Guárdalo como `SamuIA-retransmision-mvp-v5.html` y abre ese archivo nuevo. Esta edición muestra **«Retransmisión MVP v5»** arriba, incluye los cinco fondos originales y permite elegirlos en **Ajustes → Escenario del comentarista → Setup principal**. Incluye cinco composiciones con personaje y habitación unidos en una imagen por escena, sin marco ni fondo blanco. Si no ves ese indicador, estás abriendo otra edición.
 
-Cada pestaña tiene su propia sesión. **Recargar el HTML restaura la demo inicial**. Puedes exportar los datos de memoria como JSON desde Memoria (es una exportación para consulta, no un importador de sesiones). La voz es un temporizador sin audio. El avatar usa las cinco fotografías originales oficiales; los fondos siguen siendo escenarios de demostración.
+Cada pestaña tiene su propia sesión. **Recargar el HTML restaura la demo inicial**. Puedes exportar los datos de memoria como JSON desde Memoria (es una exportación para consulta, no un importador de sesiones). La voz predeterminada es simulada sin audio; en Partido de prueba se puede seleccionar TTS local del navegador. El avatar usa las cinco fotografías originales oficiales; los fondos siguen siendo escenarios de demostración.
 
 ## Desarrollo
 
@@ -105,7 +105,8 @@ packages/shared/         Tipos, comandos, perfiles, eventos y constantes
 packages/football-engine/ MatchManager, estadísticas, probabilidades y radar
 packages/chat-engine/    ChatQueue, prioridad, temas y referencias de equipos
 packages/samuia-brain/   CommentaryEngine, LiveMatchContextService y SamuIABrain
-packages/core/           ReactionDirector, scheduler, cámara, escenas y voz mock
+packages/core/           ReactionDirector, scheduler, cámara y escenas
+packages/voice/          VoiceController y contrato TTS; proveedor simulado
 packages/obs-controller/ Contrato y mock de OBS
 integrations/            Contratos y mocks OpenAI, deportes, Twitch, YouTube, TikTok
 assets/                  Referencias y assets fuente futuros
@@ -114,9 +115,9 @@ scripts/portable.mjs     Empaquetado autónomo sin solicitudes externas
 tests/                   Pruebas de dominio, API y navegador
 ```
 
-`ReactionDecision` tiene exactamente `say`, `scene`, `emotion`, `camera`, `gesture`, `energy`. Solo `say` corresponde a lo hablado. Cámara, escena, expresión y gesto son instrucciones independientes. La cámara efectiva puede mantener su encuadre mientras respeta cooldown.
+`ReactionDecision` contiene `say`, `scene`, `emotion`, `camera`, `gesture`, `energy` y la directiva independiente `avatar`. Solo `say` corresponde a lo hablado. Cámara, escena, expresión y gesto son instrucciones independientes. La cámara efectiva puede mantener su encuadre mientras respeta cooldown.
 
-`ReactionDirector`: IDLE → THINKING → SPEAKING/REACTING → COOLDOWN. Una respuesta seleccionada mientras habla queda reservada; nunca se marca respondida antes de su propia reproducción. La voz mock dura entre 1,8 y 18 segundos. Integrar audio real exige sustituir ese temporizador por señales de reproducción/finalización, conservando el arbitraje de turnos.
+`ReactionDirector`: IDLE → THINKING → SPEAKING/REACTING → COOLDOWN. Una respuesta seleccionada mientras habla queda reservada; nunca se marca respondida antes de su propia reproducción. La voz mock dura entre 1,8 y 18 segundos. El nuevo `VoiceController` conserva el arbitraje de turnos con inicio, pausa, reanudación, final y cancelación del proveedor; el audio real espera a sus callbacks en vez de terminar por duración estimada.
 
 `sportsEventQueue` puntúa gol 100; penalti/roja 90; VAR 80; ocasión/final 60; descanso 30; amarilla 20; cambio 10. Añade prioridad, importancia de competición y favoritos; reduce el peso si acaba de reaccionar a ese partido. Agrupa menores del mismo encuentro en 15 s y espera 3 s para reunirlos. Menores caducan a los 20 s; importantes a los 180 s. Cola máxima 100, ordenada por puntuación y antigüedad. Hay cooldown y límite por minuto. Las alertas tienen una lista separada con su estado de resolución.
 
@@ -164,4 +165,4 @@ La edición v3.1 conserva el encuadre completo de los escenarios, usa la misma p
 
 ### Partido de prueba end-to-end
 
-Abre **Partido de prueba → Reproducir partido completo**. El guion local de 24 pasos recorre un Celta–Dépor desde el inicio hasta el final 2–1, con comentarios, comunidad, tarjetas, VAR, penalti, cambios, descanso y predicciones verificadas (una acertada y otra fallida). Puedes pausar, avanzar paso a paso, escribir mensajes y usar controles manuales. No altera los partidos del estudio ni necesita API externa. Los PNG son referencias estáticas y la voz sigue simulada. Consulta [el recorrido y la arquitectura reutilizada](docs/partido-prueba.md).
+Abre **Partido de prueba → Reproducir partido completo**. El guion local de 24 pasos recorre un Celta–Dépor desde el inicio hasta el final 2–1, con comentarios, comunidad, tarjetas, VAR, penalti, cambios, descanso y predicciones verificadas (una acertada y otra fallida). Puedes pausar, avanzar paso a paso, escribir mensajes y usar controles manuales. No altera los partidos del estudio ni necesita API externa. Los PNG son referencias estáticas; el panel de voz permite simular o usar una voz local instalada, pausar, reanudar y silenciar. El diagnóstico muestra todo el flujo y los errores de reproducción. Consulta [el contrato TTS desacoplado](docs/voz.md). Consulta [el recorrido y la arquitectura reutilizada](docs/partido-prueba.md).

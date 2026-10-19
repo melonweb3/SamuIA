@@ -1,3 +1,4 @@
+import { VoiceController, type VoiceProvider } from '../../voice/src/index';
 import { AvatarAnimationController } from '../../avatar-animation/src/index';
 import {
   id,
@@ -37,7 +38,9 @@ export class ReactionDirector {
   scheduler = new SportsReactionScheduler();
   camera = new CameraDirector();
   scenes = new SceneManager();
-  voice = new MockVoiceProvider();
+  voice: VoiceProvider = new MockVoiceProvider();
+  playback = new VoiceController();
+  private externalVoiceClock = false;
   settings: StudioSettings = structuredClone(defaultSettings);
   profile: AICommentatorProfile = structuredClone(defaultProfile);
   state: DirectorState = 'IDLE';
@@ -90,11 +93,25 @@ export class ReactionDirector {
     this.camera.receive(draft.decision.camera, now, this.settings.cameraCooldown);
     const durationMs = this.voice.durationMs(draft.decision.say);
     this.until = now + durationMs;
+    const utteranceId = id();
+    this.externalVoiceClock = false;
     this.animation.play(directiveForDecision(draft.decision), now, {
-      id: id(),
+      id: utteranceId,
       text: draft.decision.say,
       durationMs,
     });
+    this.playback.start(
+      this.voice,
+      {
+        id: utteranceId,
+        text: draft.decision.say,
+        emotion: draft.decision.emotion,
+        energy: draft.decision.energy,
+        durationMs,
+      },
+      now,
+    );
+    this.syncVoice(now);
     this.history.unshift({
       id: id(),
       at: now,
@@ -119,7 +136,7 @@ export class ReactionDirector {
         this.animation.lookAt(cmd.target);
         return;
       case 'avatar-simulate': {
-        this.voice.stop();
+        this.playback.cancel();
         this.chat.silence();
         this.pendingChatId = null;
         this.speakingChatId = null;
@@ -198,7 +215,7 @@ export class ReactionDirector {
         break;
       case 'control':
         if (cmd.action === 'silence') {
-          this.voice.stop();
+          this.playback.cancel();
           this.chat.silence();
           this.pendingChatId = null;
           this.speakingChatId = null;
@@ -295,6 +312,8 @@ export class ReactionDirector {
     this.tick(now);
   }
   tick(now = Date.now()) {
+    this.playback.tick(now);
+    this.syncVoice(now);
     if (this.options.advanceMinutes !== false && now - this.lastMinuteAt >= 15000) {
       const elapsed = Math.floor((now - this.lastMinuteAt) / 15000);
       this.lastMinuteAt += elapsed * 15000;
@@ -307,7 +326,7 @@ export class ReactionDirector {
       this.startChat(now);
       return;
     }
-    if (this.busy && now < this.until) return;
+    if (this.busy && (this.playback.active || now < this.until)) return;
     if (this.state === 'SPEAKING' || this.state === 'REACTING') {
       if (this.speakingChatId) {
         this.chat.finish();
@@ -417,19 +436,67 @@ export class ReactionDirector {
   ): boolean {
     if (!this.animation.updateSpeechTiming(utteranceId, positionMs, cues, durationMs, now))
       return false;
+    this.playback.cancel();
+    this.externalVoiceClock = true;
     this.until = now + Math.max(0, durationMs - positionMs);
     return true;
   }
   voiceEnded(utteranceId: string, now = Date.now()): boolean {
     if (!this.animation.finishSpeech(utteranceId, now)) return false;
+    this.playback.finish(utteranceId);
+    this.playback.cancel();
     this.until = now;
     this.tick(now);
     return true;
+  }
+  setVoiceProvider(provider: VoiceProvider, now = Date.now()) {
+    const speech = this.animation.frame(now).speech;
+    if (speech) this.voiceEnded(speech.id, now);
+    else this.playback.cancel();
+    this.voice = provider;
+  }
+  pauseVoice(now = Date.now()) {
+    this.playback.pause(now);
+    this.syncVoice(now);
+  }
+  resumeVoice(now = Date.now()) {
+    this.playback.resume(now);
+    this.syncVoice(now);
+  }
+  private syncVoice(now: number) {
+    if (this.externalVoiceClock) return;
+    const voice = this.playback.snapshot();
+    if (!voice.utteranceId || this.animation.frame(now).speech?.id !== voice.utteranceId) return;
+    if (this.playback.active) {
+      if (voice.sync === 'audio-visemes')
+        this.animation.updateSpeechTiming(
+          voice.utteranceId,
+          voice.positionMs,
+          voice.cues,
+          voice.durationMs,
+          now,
+        );
+      this.animation.setPlayback(
+        voice.utteranceId,
+        voice.status as 'preparing' | 'playing' | 'paused',
+        voice.positionMs,
+        voice.durationMs,
+        now,
+      );
+    } else if (
+      voice.status === 'ended' ||
+      voice.status === 'error' ||
+      voice.status === 'cancelled'
+    ) {
+      this.animation.finishSpeech(voice.utteranceId, now);
+      this.until = now;
+    }
   }
   snapshot(now = Date.now()): StudioSnapshot {
     const animation = this.animation.frame(now);
     return structuredClone({
       mode: 'DEMO',
+      voice: this.playback.snapshot(),
       state: this.state,
       decision: this.decision,
       camera: this.camera.current,

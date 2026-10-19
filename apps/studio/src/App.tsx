@@ -159,7 +159,7 @@ export function App({ session }: { session?: ReactionDirector }) {
           <i className={connected ? 'dot' : 'dot offline'} />
           <span>
             {connected ? 'Sistema local conectado' : 'Conectando al servidor'}
-            <small>Sin APIs externas · Partido completo v4</small>
+            <small>Sin APIs externas · Retransmisión MVP v5</small>
           </span>
         </div>
       </aside>
@@ -170,7 +170,7 @@ export function App({ session }: { session?: ReactionDirector }) {
           </span>
           <div>
             <span className="local-chip">
-              ⌁ {session ? 'Demo portátil' : 'Entorno local'} · Partido completo v4
+              ⌁ {session ? 'Demo portátil' : 'Entorno local'} · Retransmisión MVP v5
             </span>
             <span className="profile-icon">S</span>
             <span>
@@ -197,7 +197,9 @@ export function App({ session }: { session?: ReactionDirector }) {
             <span className="state-badge">
               <i className="dot" />
               {page === 'Partido de prueba' ? 'SIMULATION' : (state?.state ?? 'CONECTANDO')}
-              <small>Voz simulada</small>
+              <small>
+                {page === 'Partido de prueba' ? 'Prueba de retransmisión' : 'Voz simulada'}
+              </small>
             </span>
           </div>
           {!connected && (

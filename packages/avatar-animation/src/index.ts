@@ -64,11 +64,13 @@ export function sampleAvatarFrame(base: AvatarAnimationFrame, now: number): Avat
     ? Math.max(
         0,
         speech.clock
-          ? speech.clock.positionMs + now - speech.clock.receivedAt
+          ? speech.clock.positionMs +
+              (speech.playback && speech.playback !== 'playing' ? 0 : now - speech.clock.receivedAt)
           : now - speech.startedAt,
       )
     : 0;
-  const speaking = !!speech && position < speech.durationMs;
+  const speaking =
+    !!speech && (!speech.playback || speech.playback === 'playing') && position < speech.durationMs;
   const animation =
     now < base.reactionUntil ? base.requestedAnimation : speaking ? 'talking' : 'idle';
   const activeReaction = animation !== 'idle' && animation !== 'talking';
@@ -202,6 +204,21 @@ export class AvatarAnimationController {
       durationMs,
       clock: { positionMs, receivedAt: now },
     };
+    return true;
+  }
+  setPlayback(
+    id: string,
+    playback: 'preparing' | 'playing' | 'paused',
+    positionMs: number,
+    durationMs: number,
+    now: number,
+  ) {
+    if (this.base.speech?.id !== id) return false;
+    this.base.speech.playback = playback;
+    if (this.base.speech.source === 'text-simulation' && this.base.speech.durationMs !== durationMs)
+      this.base.speech.cues = textVisemes(this.base.speech.text, durationMs);
+    this.base.speech.durationMs = durationMs;
+    this.base.speech.clock = { positionMs, receivedAt: now };
     return true;
   }
   finishSpeech(id: string, now: number): boolean {

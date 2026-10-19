@@ -1,3 +1,4 @@
+import type { VoiceSnapshot } from '../../voice/src/index';
 import type { AvatarDirective, AvatarAnimationFrame, AvatarAnimation, GazeTarget } from './avatar';
 export * from './avatar';
 export const scenes = [
@@ -266,6 +267,7 @@ export interface CommentaryDraft {
   sourceIds: string[];
 }
 export interface StudioSnapshot {
+  voice: VoiceSnapshot;
   mode: 'DEMO';
   state: DirectorState;
   decision: ReactionDecision;

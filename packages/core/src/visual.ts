@@ -1,7 +1,7 @@
+import { SimulatedVoiceProvider } from '../../voice/src/index';
 import {
   type Camera,
   type Scene,
-  type ReactionDecision,
   type AvatarState,
   type AvatarAnimationFrame,
   type Emotion,
@@ -95,14 +95,5 @@ export class SceneManager {
     this.current = scene;
   }
 }
-export class MockVoiceProvider {
-  durationMs(text: string) {
-    return Math.max(1800, Math.min(18000, text.length * 38));
-  }
-  async speak(input: { text: string; emotion: ReactionDecision['emotion']; energy: number }) {
-    return { durationMs: this.durationMs(input.text) };
-  }
-  stop() {
-    /* Explicit simulated playback cancellation. */
-  }
-}
+/** Compatibility name retained for the studio and accelerated match simulation. */
+export class MockVoiceProvider extends SimulatedVoiceProvider {}

@@ -1,8 +1,8 @@
-# Partido de prueba · SIMULATION · v4
+# Partido de prueba · SIMULATION · v5
 
 ## Abrirlo
 
-Descarga de nuevo `downloads/SamuIA-Live-Studio.html` y abre la copia guardada. La cabecera debe mostrar **Partido completo v4**. Entra en **Partido de prueba** y pulsa **Reproducir partido completo**. También se puede abrir el HTML con `#partido-prueba` o esa misma ruta hash en el servidor local.
+Descarga de nuevo `downloads/SamuIA-Live-Studio.html` y abre la copia guardada. La cabecera debe mostrar **Retransmisión MVP v5**. Entra en **Partido de prueba** y pulsa **Reproducir partido completo**. También se puede abrir el HTML con `#partido-prueba` o esa misma ruta hash en el servidor local.
 
 La pantalla reúne marcador, equipos, minuto, escenario y personaje oficiales, comentario activo, historial de comentarios, mensajes de la comunidad, reacción/expresión, intensidad, mirada y memoria. La reacción selecciona uno de los cinco retratos oficiales como referencia aparte; no se superpone sobre el micrófono. La composición del escenario permanece quieta y conserva todo su encuadre.
 
@@ -32,7 +32,7 @@ El guion no escribe «acertada» ni «fallida» en la memoria. Publica una predi
 - **Pausar recorrido** detiene el siguiente paso. La frase actual termina normalmente.
 - **Siguiente paso** ejecuta solo una acción y espera a que su comentario quede publicado y termine la lectura antes de avanzar.
 - **Terminar lectura simulada** finaliza el reloj de la frase actual. No evita publicar el comentario ni marca el mensaje como omitido.
-- **Lectura rápida** reduce la duración del proveedor mock. No hay audio real. Desactivarla afecta a las siguientes frases.
+- **Lectura rápida** reduce la duración del proveedor simulado. Desactivarla afecta a las siguientes frases. Para escuchar audio, selecciona una voz local en **Voz y flujo de retransmisión** antes de comenzar; depende de las voces instaladas en el navegador.
 - El minuto avanza según el guion, para recorrer 90 minutos en una prueba corta. Las pausas no hacen avanzar el reloj del partido. En modo manual se puede adelantar el minuto, nunca retroceder.
 - **Responder al chat automáticamente** atiende la cola al quedar libre el director. Se puede desactivar y responder cada mensaje con su botón.
 - **Eventos manuales** permiten iniciar, reanudar, simular ocasiones, goles, tarjetas, penalti, VAR, cambios, descanso y final. No pueden insertarse en mitad de un paso guiado.
@@ -50,11 +50,13 @@ Los mensajes usan `ChatQueue → SamuIABrain → CommentaryEngine`. El historial
 
 ReactionDirector acepta opcionalmente una lista de encuentros y desactivar su avance automático de minutos. El comportamiento predeterminado del estudio sigue siendo el mismo. Los nuevos eventos `kickoff` y `second_half` pasan por las mismas suscripciones, cola, comentario y observación del contexto; sustituir únicamente el estado ya no deja el inicio sin comentar.
 
+El panel **Voz y flujo de retransmisión** permite pausar/reanudar la frase, silenciarla, ver el estado del proveedor, reloj, sincronización y errores, y comprobar evento → partido → comentario → emoción → avatar → voz → interfaz. Pausar la voz impide avanzar hasta reanudarla o terminarla. Silenciar conserva el comentario publicado y libera la cola después del cooldown. Cambiar de pantalla o reiniciar cancela el audio pendiente.
+
 El HTML incluye todos los motores y los PNG oficiales archivados; no requiere servidor ni API externa. En modo servidor, el resto del estudio conserva sus rutas `/api`, SSE y controles. No se han añadido claves ni dependencias.
 
 ## Límites de esta prueba
 
-Los comentarios los genera el motor local existente con reglas y plantillas, no una API de LLM. La voz es un temporizador simulado. El controlador emite animaciones, expresiones y señales, pero los PNG siguen siendo fallback estático; todavía no hay modelo 2D/3D articulado, parpadeo facial ni lip-sync visual real. No se mueve toda la habitación ni se recorta el personaje sobre el micro para fingir animación.
+Los comentarios los genera el motor local existente con reglas y plantillas, no una API de LLM. La voz usa un controlador independiente del proveedor. La opción predeterminada es simulada; las voces locales del navegador pueden emitir audio si están disponibles. Su temporización de boca es aproximada desde texto; un futuro proveedor puede aportar reloj y visemas medidos. Consulta [el contrato y ciclo de vida](voz.md). El controlador emite animaciones, expresiones y señales, pero los PNG siguen siendo fallback estático; todavía no hay modelo 2D/3D articulado, parpadeo facial ni lip-sync visual real. No se mueve toda la habitación ni se recorta el personaje sobre el micro para fingir animación.
 
 ## Verificación
 

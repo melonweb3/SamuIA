@@ -2577,3 +2577,21 @@ footer {
   max-height: 440px;
   overflow: auto;
 }
+
+.voice-panel {
+  display: grid;
+  gap: 12px;
+  overflow-wrap: anywhere;
+}
+.voice-panel > label {
+  padding: 0;
+  border: 0;
+}
+.broadcast-pipeline {
+  margin: 0;
+  padding-left: 20px;
+  line-height: 1.6;
+}
+.broadcast-pipeline li + li {
+  margin-top: 6px;
+}

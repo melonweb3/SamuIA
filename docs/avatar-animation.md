@@ -92,7 +92,7 @@ director.updateVoiceTiming(utteranceId, positionMs, durationMs, visemeCues, now)
 director.voiceEnded(utteranceId, now);
 ```
 
-`utteranceId` se obtiene de `snapshot.animation.speech.id`. El progreso actualiza el mismo reloj que usa el director y cambia la fuente a `audio-visemes`; los callbacks antiguos o cues inválidos se rechazan. El adaptador de TTS deberá gestionar preparación/buffering antes de la reproducción y enviar el reloj al arrancar y durante el audio. No se ha conectado un servicio de voz real, Web Speech ni clonación de voz.
+`utteranceId` se obtiene de `snapshot.animation.speech.id`. El progreso actualiza el mismo reloj que usa el director y cambia la fuente a `audio-visemes`; los callbacks antiguos o cues inválidos se rechazan. El nuevo `VoiceController` gestiona preparación/buffering, pausa, fin y cancelación antes de enviar el reloj al avatar. Hay proveedor simulado y adaptador opcional de Web Speech con voces locales; no hay clonación ni servicio externo de voz. Consulta [el contrato de voz](voz.md).
 
 ## Probar
 
@@ -100,7 +100,7 @@ Abre **SIMULATION**. Puedes elegir los 13 estados, texto e intensidad, ejecutar 
 
 Los controles «Ejecutar animación» son previsualizaciones explícitas: interrumpen la frase, no modifican resultados ni memoria de partido. Los botones «Evento: …» sí pasan por el motor deportivo y las reglas normales; si está hablando o hay cooldown, esperan en cola. No desactivan filtros en silencio.
 
-La edición descargable muestra **Avatar SIMULATION v3**. Vuelve a descargar el HTML para actualizar una copia anterior. Las pruebas cubren señales, estados, tiempos de voz, interrupciones, callbacks tardíos, mapeos de eventos, datos deportivos, API y simulación offline en navegador.
+La edición descargable actual muestra **Retransmisión MVP v5**. Vuelve a descargar el HTML para actualizar una copia anterior. Las pruebas cubren señales, estados, tiempos de voz, interrupciones, callbacks tardíos, mapeos de eventos, datos deportivos, API y simulación offline en navegador.
 
 ## Corrección de encuadre · v3.1
 

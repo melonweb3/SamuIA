@@ -266,6 +266,9 @@ export class MatchSimulationSession {
         now,
       );
   }
+  useSimulatedVoice(now = Date.now()) {
+    this.director.setVoiceProvider(new SimulationVoice(() => this.fast), now);
+  }
   finishReading(now = Date.now()) {
     const speech = this.snapshot(now).animation.speech;
     if (speech) this.director.voiceEnded(speech.id, now);
