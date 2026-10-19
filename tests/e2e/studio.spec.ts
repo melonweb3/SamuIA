@@ -216,6 +216,7 @@ test('escenarios oficiales offline: selección, gráficos, luz e integridad de l
   );
   await context.setOffline(true);
   await page.goto('http://localhost/studio-setup');
+  await expect(page.locator('.local-chip')).toContainText('Escenas oficiales v1');
   await expect(page.locator('.scene-image')).toHaveAttribute('data-scene-file', 'escena_05.png');
   for (const entry of originals) {
     await page.getByRole('button', { name: 'Ajustes', exact: true }).click();
