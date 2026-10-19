@@ -8,7 +8,7 @@ Esta versión reconstruye el MVP descrito en la conversación y añade la person
 
 Descarga **[downloads/SamuIA-Live-Studio.html](downloads/SamuIA-Live-Studio.html)** y abre el archivo guardado con un navegador moderno. Contiene React, estilos y los mismos motores dentro de un único HTML; no necesita servidor ni Internet. En GitHub, usa el botón de descargar el archivo: la vista del código HTML no es la aplicación.
 
-Cada pestaña tiene su propia sesión. **Recargar el HTML restaura la demo inicial**. Puedes exportar los datos de memoria como JSON desde Memoria (es una exportación para consulta, no un importador de sesiones). La voz es un temporizador sin audio. El avatar y los fondos son placeholders.
+Cada pestaña tiene su propia sesión. **Recargar el HTML restaura la demo inicial**. Puedes exportar los datos de memoria como JSON desde Memoria (es una exportación para consulta, no un importador de sesiones). La voz es un temporizador sin audio. El avatar usa las cinco fotografías originales oficiales; los fondos siguen siendo escenarios de demostración.
 
 ## Desarrollo
 
@@ -126,11 +126,13 @@ Las estimaciones son deterministas: modelo Poisson de goles restantes con marcad
 
 ## Assets y proveedores futuros
 
-La identidad oficial del personaje está definida en [assets/reference/README.md](assets/reference/README.md) y [su manifiesto](assets/reference/identity.json), a partir de los cinco retratos del mismo personaje aportados por el usuario. Debe mantenerse en todas las expresiones y cámaras. El archivo original de la lámina aún está pendiente de incorporación; el SVG actual es un placeholder técnico, no el avatar oficial.
+La identidad oficial del personaje está definida en [assets/reference/README.md](assets/reference/README.md) y [su manifiesto](assets/reference/identity.json), a partir de los cinco retratos del mismo personaje aportados por el usuario. Debe mantenerse en todas las expresiones y cámaras. Los cinco PNG y sus ZIP están archivados con huellas SHA-256. La aplicación y el HTML portátil muestran las imágenes originales; el SVG provisional ha sido retirado.
 
-Avatar: `apps/studio/public/samuia/avatar/` con `neutral.png`, `smile.png`, `talking.png`, `laugh.png`, `surprised.png`, `thinking.png`, `serious.png`, `angry.png`. Se reservan `three-quarter-left.png`, `three-quarter-right.png`, `medium.png`, `streamer.png`. Las cámaras actuales son escala, posición y giro del mismo placeholder, no cámaras físicas.
+Avatar: `apps/studio/public/samuia/avatar/` contiene copias exactas de `avatar_cara_01.png` (sonrisa), `02` (pensativo), `03` (neutral), `04` (habla) y `05` (serio). Los ZIP sin cambios y los PNG originales se conservan en `assets/reference/archives/` y `assets/reference/originals/`; sus hashes están en `originals-index.json`. El selector de Ajustes solo admite esas cinco vistas del mismo personaje o el modo automático. Las expresiones ausentes usan una referencia disponible, sin crear imágenes nuevas. Las cámaras usan encuadres del mismo retrato y mantienen sus proporciones; no modifican sus bytes.
 
-Escenas: `public/samuia/scenes/` con `chat.png`, `football.png`, `gaming.png`, `tech.png`, `angry-red.png`, `celebration.png`. Mapeos en `core/src/visual.ts`. El avatar mantiene proporciones con contain; el fondo usa cover. Cambiar escena no reinicia el avatar. Hay transiciones y soporte de movimiento reducido. La distribución portátil no carga archivos gráficos externos.
+El HTML portátil incorpora las cinco imágenes completas en base64 y el build comprueba su igualdad con los originales. Puede ocupar unos 16 MB porque no se comprimen ni redimensionan los PNG.
+
+Escenas: `public/samuia/scenes/` con `chat.png`, `football.png`, `gaming.png`, `tech.png`, `angry-red.png`, `celebration.png`. Mapeos en `core/src/visual.ts`. El avatar mantiene proporciones con contain; el fondo usa cover. Cambiar escena no reinicia el avatar. Hay transiciones y soporte de movimiento reducido. La distribución portátil no descarga imágenes externas: los cinco originales están incluidos en el archivo.
 
 Para proveedores reales, implementa `ChatProvider`, `SportsDataProvider`, `BrainProvider`, `VoiceProvider` o `OBSController` y compónlos en el backend. Los mocks de chat tienen buzón y envío, deportes incluye ligas/partidos/estadísticas/eventos/suscripciones, OBS registra comandos sin conectarse. `MockOpenAIProvider` es una interfaz demostrativa; la aplicación usa su cerebro local.
 

@@ -1,0 +1,57 @@
+[
+  {
+    "id": "avatar-01",
+    "originalFile": "assets/reference/originals/avatar_cara_01.png",
+    "runtimeFile": "apps/studio/public/samuia/avatar/avatar_cara_01.png",
+    "archiveFile": "assets/reference/archives/avatar_cara_original_01.zip",
+    "sha256": "bf6e69ffa13c827b4b8b4afdc639a59882df7e3af7af37956653e62820f272f5",
+    "archiveSha256": "60802c9dfd7d5fa1c4fc995f155b6c41a0cc776d8f1487ed7992bad1b76a0ad3",
+    "bytes": 2321562,
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "id": "avatar-02",
+    "originalFile": "assets/reference/originals/avatar_cara_02.png",
+    "runtimeFile": "apps/studio/public/samuia/avatar/avatar_cara_02.png",
+    "archiveFile": "assets/reference/archives/avatar_cara_original_02.zip",
+    "sha256": "1b15f2e4486504bc32d8bef83556397d6875a7e7d309331416615f1f368d7955",
+    "archiveSha256": "a5ae926c41b7babf7edd02593b0667fb5582e1a39ca53603ca2b4b3632a5e130",
+    "bytes": 2390628,
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "id": "avatar-03",
+    "originalFile": "assets/reference/originals/avatar_cara_03.png",
+    "runtimeFile": "apps/studio/public/samuia/avatar/avatar_cara_03.png",
+    "archiveFile": "assets/reference/archives/avatar_cara_original_03.zip",
+    "sha256": "79cad22d970edb6507039425e589203aa9901747f5f0d6b2046034ed9bd0b15d",
+    "archiveSha256": "f26cd8e658079b48fd1f6b5629c1ff66a27e7bf0b5315beebf5152ec0af89a40",
+    "bytes": 2261654,
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "id": "avatar-04",
+    "originalFile": "assets/reference/originals/avatar_cara_04.png",
+    "runtimeFile": "apps/studio/public/samuia/avatar/avatar_cara_04.png",
+    "archiveFile": "assets/reference/archives/avatar_cara_original_04.zip",
+    "sha256": "9c7efe595b14629d9318e068a420b194e28ab33335b4f90cc830e6032f05c9a7",
+    "archiveSha256": "8d94dbf0158f8d83ed3afb860985537d2e9edacbc3450266048049440a34418e",
+    "bytes": 2309451,
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "id": "avatar-05",
+    "originalFile": "assets/reference/originals/avatar_cara_05.png",
+    "runtimeFile": "apps/studio/public/samuia/avatar/avatar_cara_05.png",
+    "archiveFile": "assets/reference/archives/avatar_cara_original_05.zip",
+    "sha256": "a0470ff664d6472f53c27b0c1e78ef4447a135ef06100e42a2abd87691fee529",
+    "archiveSha256": "30f9df37afba38688f91d35c2db8b0312bed4f5c539fd2380e367b597f2afd66",
+    "bytes": 2369761,
+    "width": 1122,
+    "height": 1402
+  }
+]

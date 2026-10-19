@@ -1,16 +1,23 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "identityId": "samuia-main-v1",
   "characterName": "SamuIA",
   "role": "main-commentator",
   "sameCharacterAcrossAllViews": true,
   "source": {
-    "kind": "user-provided-conversation-image",
+    "kind": "user-provided-zip-archives",
     "receivedDate": "2026-10-19",
-    "description": "Lámina de cinco retratos del mismo personaje: tres arriba y dos abajo.",
-    "storageStatus": "original-file-required",
-    "originalFile": null,
-    "sha256": null
+    "description": "Cinco PNG originales del mismo personaje, recibidos en cinco ZIP y archivados sin cambios.",
+    "storageStatus": "originals-archived-byte-identical",
+    "originalFiles": [
+      "assets/reference/originals/avatar_cara_01.png",
+      "assets/reference/originals/avatar_cara_02.png",
+      "assets/reference/originals/avatar_cara_03.png",
+      "assets/reference/originals/avatar_cara_04.png",
+      "assets/reference/originals/avatar_cara_05.png"
+    ],
+    "integrityIndex": "assets/reference/originals-index.json",
+    "archivesDirectory": "assets/reference/archives"
   },
   "invariants": {
     "face": "Conservar la estructura facial, rasgos, proporciones y asimetrías de la lámina.",
@@ -24,18 +31,60 @@
     "style": "Retrato fotográfico realista."
   },
   "views": [
-    { "position": "top-left", "expression": "open-smile" },
-    { "position": "top-center", "expression": "thoughtful", "gesture": "hand-on-chin" },
-    { "position": "top-right", "expression": "relaxed-closed-mouth" },
-    { "position": "bottom-left", "expression": "slightly-open-mouth" },
-    { "position": "bottom-right", "expression": "serious-neutral" }
+    {
+      "position": "top-left",
+      "expression": "open-smile",
+      "originalId": "avatar-01",
+      "originalFile": "assets/reference/originals/avatar_cara_01.png"
+    },
+    {
+      "position": "top-center",
+      "expression": "thoughtful",
+      "gesture": "hand-on-chin",
+      "originalId": "avatar-02",
+      "originalFile": "assets/reference/originals/avatar_cara_02.png"
+    },
+    {
+      "position": "top-right",
+      "expression": "relaxed-closed-mouth",
+      "originalId": "avatar-03",
+      "originalFile": "assets/reference/originals/avatar_cara_03.png"
+    },
+    {
+      "position": "bottom-left",
+      "expression": "slightly-open-mouth",
+      "originalId": "avatar-04",
+      "originalFile": "assets/reference/originals/avatar_cara_04.png"
+    },
+    {
+      "position": "bottom-right",
+      "expression": "serious-neutral",
+      "originalId": "avatar-05",
+      "originalFile": "assets/reference/originals/avatar_cara_05.png"
+    }
   ],
   "allowedVariations": ["expression", "gaze", "gesture", "framing", "lighting", "background"],
   "notEstablished": ["full-body-proportions", "height", "trousers", "footwear"],
   "runtime": {
-    "currentAvatar": "technical-placeholder",
+    "currentAvatar": "official-originals",
     "placeholderIsOfficialIdentity": false,
-    "referenceIntegrated": false,
-    "approvedDerivedFiles": []
+    "referenceIntegrated": true,
+    "approvedOriginalFiles": [
+      "apps/studio/public/samuia/avatar/avatar_cara_01.png",
+      "apps/studio/public/samuia/avatar/avatar_cara_02.png",
+      "apps/studio/public/samuia/avatar/avatar_cara_03.png",
+      "apps/studio/public/samuia/avatar/avatar_cara_04.png",
+      "apps/studio/public/samuia/avatar/avatar_cara_05.png"
+    ],
+    "approvedDerivedFiles": [],
+    "automaticMapping": {
+      "neutral": "avatar-03",
+      "smile": "avatar-01",
+      "thoughtful": "avatar-02",
+      "speaking": "avatar-04",
+      "serious": "avatar-05"
+    },
+    "missingExpressions": "Se reutiliza una referencia original; no se sintetizan sorpresa, risa ni enfado.",
+    "portableEmbedding": "PNG completos codificados en base64; al decodificar se conservan los bytes originales."
   }
 }

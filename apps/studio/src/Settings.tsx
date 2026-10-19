@@ -5,6 +5,7 @@ import type {
   PersonalityRule,
 } from '../../../packages/shared/src/index';
 import { Panel, matchTitle, type ViewProps } from './ui';
+import { officialAvatarFiles, officialAvatarDescriptions } from '../../../packages/core/src/visual';
 export function Settings({ state, send }: ViewProps) {
   const profile = (patch: Partial<AICommentatorProfile>) => void send({ type: 'profile', patch }),
     settings = (patch: Partial<StudioSettings>) => void send({ type: 'settings', patch });
@@ -49,15 +50,28 @@ export function Settings({ state, send }: ViewProps) {
               />
             </label>
             <label>
-              Avatar · archivo local
-              <input
-                defaultValue={state.profile.avatar}
-                maxLength={200}
-                onBlur={(e) => profile({ avatar: e.target.value.trim() || 'placeholder' })}
-              />
+              Avatar oficial
+              <select
+                aria-label="Avatar oficial"
+                value={
+                  officialAvatarFiles.includes(
+                    state.profile.avatar as (typeof officialAvatarFiles)[number],
+                  )
+                    ? state.profile.avatar
+                    : 'official'
+                }
+                onChange={(e) => profile({ avatar: e.target.value })}
+              >
+                <option value="official">Automático según la reacción</option>
+                {officialAvatarFiles.map((file) => (
+                  <option key={file} value={file}>
+                    {officialAvatarDescriptions[file]}
+                  </option>
+                ))}
+              </select>
               <small>
-                placeholder o un archivo en public/samuia/avatar. La demo portátil utiliza el
-                placeholder.
+                Cinco retratos originales del mismo personaje, sin ediciones. También incluidos en
+                el HTML portátil.
               </small>
             </label>
             <label>

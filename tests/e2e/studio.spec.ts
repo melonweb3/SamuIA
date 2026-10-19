@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { createHash } from 'node:crypto';
 test('dashboard compilado: gol, alerta secundaria y pregunta de chat sin interrumpir', async ({
   page,
   request,
@@ -9,6 +10,12 @@ test('dashboard compilado: gol, alerta secundaria y pregunta de chat sin interru
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
   await expect(page.getByText('Sistema local conectado')).toBeVisible();
+  await expect(page.getByRole('img', { name: /Avatar oficial de SamuIA/ })).toBeVisible();
+  await expect
+    .poll(() =>
+      page.locator('.avatar-image').evaluate((image: HTMLImageElement) => image.naturalWidth),
+    )
+    .toBe(1122);
   await page.getByRole('button', { name: '+ Gol Celta', exact: true }).click();
   await expect(page.locator('.speech-content')).toContainText('GOOOOOL! Iepaaa meu!');
   await page.screenshot({ path: '.local/dashboard-desktop.png', fullPage: true });
@@ -143,4 +150,50 @@ test('HTML portátil offline: opiniones, predicción verificada y encuesta con v
   ).toBeVisible();
   expect(errors).toEqual([]);
   expect(requests).toEqual([]);
+});
+
+test('las cinco referencias se ven offline y mantienen exactamente los PNG originales', async ({
+  page,
+  context,
+}) => {
+  const html = await readFile(resolve('.local/SamuIA-Live-Studio.html'), 'utf8');
+  const originals: { runtimeFile: string; sha256: string }[] = JSON.parse(
+    await readFile('assets/reference/originals-index.json', 'utf8'),
+  );
+  await page.route('http://localhost/official-avatar', (route) =>
+    route.fulfill({ contentType: 'text/html', body: html }),
+  );
+  await context.setOffline(true);
+  await page.goto('http://localhost/official-avatar');
+  await expect(page.getByText('Sistema local conectado')).toBeVisible();
+  await page.getByRole('button', { name: 'Ajustes', exact: true }).click();
+  for (const entry of originals) {
+    const filename = entry.runtimeFile.split('/').at(-1)!;
+    await page
+      .getByRole('combobox', { name: 'Avatar oficial', exact: true })
+      .selectOption(filename);
+    await page.getByRole('button', { name: 'Dashboard', exact: true }).click();
+    const image = page.locator('.avatar-image');
+    await expect(image).toHaveAttribute('data-avatar-file', filename);
+    await expect
+      .poll(() => image.evaluate((element: HTMLImageElement) => element.naturalWidth))
+      .toBe(1122);
+    const source = await image.getAttribute('src');
+    expect(source?.startsWith('data:image/png;base64,')).toBe(true);
+    expect(
+      createHash('sha256')
+        .update(Buffer.from(source!.split(',')[1], 'base64'))
+        .digest('hex'),
+    ).toBe(entry.sha256);
+    await expect(page.locator('svg.placeholder')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click();
+  }
+});
+
+test('si falla un retrato solo recurre a otro original o muestra un aviso', async ({ page }) => {
+  await page.route('**/samuia/avatar/*.png', (route) => route.abort());
+  await page.goto('/');
+  await expect(page.getByText('No se ha podido cargar el retrato oficial.')).toBeVisible();
+  await expect(page.locator('svg.placeholder')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Reintentar imagen' })).toBeVisible();
 });

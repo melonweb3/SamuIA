@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { eventTypes } from '../../../packages/shared/src/index';
+import { officialAvatarFiles } from '../../../packages/core/src/visual';
 const id = z.string().min(1).max(128),
   name = z.string().trim().min(1).max(80),
   level = z.number().int().min(0).max(100);
@@ -31,7 +32,7 @@ const settings = z
 const profile = z
   .object({
     name,
-    avatar: z.string().min(1).max(200),
+    avatar: z.enum(['official', 'placeholder', ...officialAvatarFiles]),
     description: z.string().max(500),
     personalityStyle: z.string().max(500),
     catchphrases: z.array(name).max(30),

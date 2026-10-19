@@ -589,12 +589,6 @@ h1 {
   transform-origin: 50% 75%;
   transition: transform 1s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.placeholder {
-  height: 100%;
-  width: 100%;
-  animation: breathe 5s ease-in-out infinite;
-  filter: drop-shadow(0 0 15px #79d49f14);
-}
 .avatar-image {
   position: absolute;
   inset: 0;
@@ -603,17 +597,17 @@ h1 {
   object-fit: contain;
   animation: reveal 0.4s ease;
 }
-.has-image .placeholder {
-  visibility: hidden;
+.avatar-unavailable {
+  margin: 100px 20px;
+  padding: 16px;
+  background: #10222ce6;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.8;
 }
-.gesture-celebracion .placeholder {
-  animation: celebrate 0.65s ease-in-out infinite alternate;
-}
-.gesture-asentir .placeholder {
-  animation: nod 2s ease-in-out infinite;
-}
-.gesture-señalar .placeholder {
-  animation: nod 3s ease-in-out infinite;
+.avatar-unavailable button {
+  margin-top: 12px;
 }
 .monitor {
   position: absolute;

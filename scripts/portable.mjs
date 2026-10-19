@@ -2,6 +2,7 @@ import { build } from 'vite';
 import react from '@vitejs/plugin-react';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { createHash } from 'node:crypto';
 const output = resolve('.local/portable');
 await build({
   configFile: false,
@@ -31,6 +32,27 @@ html = html
     () => `<script type="module">${js.replace(/<\/script/gi, '<\\/script')}</script>`,
   )
   .replace(style[0], () => `<style>${css}</style>`);
+const originals = JSON.parse(
+  await readFile(resolve('assets/reference/originals-index.json'), 'utf8'),
+);
+const embedded = {};
+for (const original of originals) {
+  const reference = await readFile(resolve(original.originalFile));
+  const runtime = await readFile(resolve(original.runtimeFile));
+  if (
+    !reference.equals(runtime) ||
+    createHash('sha256').update(runtime).digest('hex') !== original.sha256
+  ) {
+    throw new Error(`El avatar no coincide con el original: ${original.runtimeFile}`);
+  }
+  const filename = original.runtimeFile.split('/').at(-1);
+  embedded[filename] = `data:image/png;base64,${runtime.toString('base64')}`;
+}
+html = html.replace(
+  '<head>',
+  () =>
+    `<head><script id="samuia-avatar-originals" type="application/json">${JSON.stringify(embedded)}</script>`,
+);
 await writeFile(resolve('.local/SamuIA-Live-Studio.html'), html);
 await mkdir(resolve('downloads'), { recursive: true });
 await writeFile(resolve('downloads/SamuIA-Live-Studio.html'), html);

@@ -323,7 +323,7 @@ export const defaultSettings: StudioSettings = {
 };
 export const defaultProfile: AICommentatorProfile = {
   name: 'SamuIA',
-  avatar: 'placeholder',
+  avatar: 'official',
   description: 'Fútbol entre amigos. Pasión, buen humor y memoria; siempre con respeto.',
   personalityStyle: 'futbolero, cercano, observador y espontáneo',
   catchphrases: ['Ojo con esto', 'Me voy a mojar', 'Vamos allá', 'Buena esa'],
