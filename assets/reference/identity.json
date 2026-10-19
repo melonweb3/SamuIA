@@ -66,7 +66,7 @@
   "allowedVariations": ["expression", "gaze", "gesture", "framing", "lighting", "background"],
   "notEstablished": ["full-body-proportions", "height", "trousers", "footwear"],
   "runtime": {
-    "currentAvatar": "integrated-composite-default-original-portraits-optional",
+    "currentAvatar": "animation-controller-with-official-image-fallback",
     "placeholderIsOfficialIdentity": false,
     "referenceIntegrated": true,
     "approvedOriginalFiles": [
@@ -94,6 +94,8 @@
     "portableEmbedding": "PNG completos codificados en base64; al decodificar se conservan los bytes originales.",
     "compositeManifest": "assets/runtime/scenes/composites-index.json",
     "compositeAuthorization": "Petición expresa del usuario del 19 de octubre de 2026: integrar avatar y escenario en una sola imagen sin fondo blanco. Originales intactos.",
-    "compositePose": "Pose neutra fija por escenario, sin animación facial; originales disponibles en modo de capas."
+    "compositePose": "Pose neutra fija por escenario, sin animación facial; originales disponibles en modo de capas.",
+    "animationArchitecture": "docs/avatar-animation.md",
+    "animationInstruction": "Petición posterior del usuario: imágenes solo como referencia/fallback, contrato independiente para avatar animado 2D/3D y lip-sync."
   }
 }

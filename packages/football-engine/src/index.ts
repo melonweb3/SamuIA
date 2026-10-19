@@ -132,6 +132,7 @@ export function calculateProbabilities(m: MatchState): MatchState['probabilities
 const heatWeights: Record<EventType, number> = {
   goal: 20,
   chance: 8,
+  missed_chance: 8,
   red: 15,
   penalty: 20,
   var: 12,
@@ -265,6 +266,10 @@ export class MatchManager {
       s.shotsOnTarget++;
       s.xG += 0.22;
       s.corners++;
+    }
+    if (type === 'missed_chance') {
+      s.shots++;
+      s.xG += 0.22;
     }
     if (type === 'yellow') s.yellow++;
     if (type === 'red') s.red++;

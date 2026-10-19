@@ -8,6 +8,7 @@ import { Radar, Alerts } from './Sports';
 import { Settings } from './Settings';
 import { MemoryPanel } from './Memory';
 import { Integrations } from './Integrations';
+import { AvatarSimulation } from './AvatarSimulation';
 import type { Send } from './ui';
 const pages = [
   'Dashboard',
@@ -16,10 +17,11 @@ const pages = [
   'Cola del Chat',
   'Memoria',
   'Integraciones',
+  'SIMULATION',
   'Ajustes',
 ] as const;
 type Page = (typeof pages)[number];
-const icons = ['◫', '⚑', '◎', '☷', '◈', '⌘', '⚙'];
+const icons = ['◫', '⚑', '◎', '☷', '◈', '⌘', '▷', '⚙'];
 export function App({ session }: { session?: ReactionDirector }) {
   const [page, setPage] = useState<Page>('Dashboard'),
     [state, setState] = useState<StudioSnapshot | null>(null),
@@ -151,7 +153,7 @@ export function App({ session }: { session?: ReactionDirector }) {
           <i className={connected ? 'dot' : 'dot offline'} />
           <span>
             {connected ? 'Sistema local conectado' : 'Conectando al servidor'}
-            <small>Sin APIs externas · Escenas integradas v2</small>
+            <small>Sin APIs externas · Avatar SIMULATION v3</small>
           </span>
         </div>
       </aside>
@@ -162,7 +164,7 @@ export function App({ session }: { session?: ReactionDirector }) {
           </span>
           <div>
             <span className="local-chip">
-              ⌁ {session ? 'Demo portátil' : 'Entorno local'} · Escenas integradas v2
+              ⌁ {session ? 'Demo portátil' : 'Entorno local'} · Avatar SIMULATION v3
             </span>
             <span className="profile-icon">S</span>
             <span>
@@ -221,6 +223,7 @@ export function App({ session }: { session?: ReactionDirector }) {
               {page === 'Memoria' && <MemoryPanel state={state} send={send} />}{' '}
               {page === 'Ajustes' && <Settings state={state} send={send} />}{' '}
               {page === 'Integraciones' && <Integrations />}
+              {page === 'SIMULATION' && <AvatarSimulation state={state} send={send} />}
               <footer>
                 <span>{DISCLAIMER}</span>
                 <span>● SAMUIA LIVE STUDIO / DEMO LOCAL</span>

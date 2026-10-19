@@ -1,5 +1,8 @@
+import { AvatarAnimationController } from '../../avatar-animation/src/index';
 import {
   id,
+  directiveForDecision,
+  directiveForAnimation,
   normalDecision,
   defaultSettings,
   defaultProfile,
@@ -11,6 +14,7 @@ import {
   type DirectorState,
   type StudioSnapshot,
   type SportsAlert,
+  type VisemeCue,
 } from '../../shared/src/index';
 import { MatchManager } from '../../football-engine/src/index';
 import { ChatQueue } from '../../chat-engine/src/index';
@@ -21,8 +25,9 @@ import {
 } from '../../samuia-brain/src/index';
 import { SportsReactionScheduler } from './scheduler';
 import { CameraDirector, SceneManager, MockVoiceProvider } from './visual';
-export { SportsReactionScheduler, CameraDirector, SceneManager };
+export { SportsReactionScheduler, CameraDirector, SceneManager, AvatarAnimationController };
 export class ReactionDirector {
+  animation: AvatarAnimationController;
   manager = new MatchManager();
   context = new LiveMatchContextService();
   commentary = new CommentaryEngine(this.context);
@@ -44,6 +49,7 @@ export class ReactionDirector {
   private controls: CommentaryDraft[] = [];
   private lastMinuteAt: number;
   constructor(now = Date.now(), seed = true) {
+    this.animation = new AvatarAnimationController(now);
     this.lastMinuteAt = now;
     for (const m of this.manager.activeMatches) this.context.get(m.id).lastCommentAt = now;
     this.manager.focus('celta-madrid', now);
@@ -76,7 +82,13 @@ export class ReactionDirector {
     this.state = sports ? 'REACTING' : 'SPEAKING';
     this.scenes.receive(draft.decision.scene);
     this.camera.receive(draft.decision.camera, now, this.settings.cameraCooldown);
-    this.until = now + this.voice.durationMs(draft.decision.say);
+    const durationMs = this.voice.durationMs(draft.decision.say);
+    this.until = now + durationMs;
+    this.animation.play(directiveForDecision(draft.decision), now, {
+      id: id(),
+      text: draft.decision.say,
+      durationMs,
+    });
     this.history.unshift({
       id: id(),
       at: now,
@@ -88,6 +100,7 @@ export class ReactionDirector {
     this.history = this.history.slice(0, 100);
   }
   private reset(now: number) {
+    this.animation.stop(now);
     this.decision = normalDecision();
     this.scenes.receive('futbol');
     this.camera.reset();
@@ -95,6 +108,33 @@ export class ReactionDirector {
   }
   command(cmd: StudioCommand, now = Date.now()) {
     switch (cmd.type) {
+      case 'avatar-gaze':
+        this.animation.lookAt(cmd.target);
+        return;
+      case 'avatar-simulate': {
+        this.voice.stop();
+        this.chat.silence();
+        this.pendingChatId = null;
+        this.speakingChatId = null;
+        this.controls = [];
+        const avatar = directiveForAnimation(cmd.animation, cmd.intensity, cmd.gaze);
+        this.perform(
+          {
+            decision: {
+              ...normalDecision(),
+              say: cmd.text,
+              energy: Math.round(cmd.intensity * 100),
+              avatar,
+            },
+            recallIds: [],
+            sourceIds: [],
+          },
+          'SIMULATION · avatar',
+          now,
+        );
+        if (!cmd.text) this.until = now + 3000;
+        return;
+      }
       case 'event': {
         const event = this.manager.receiveEvent(cmd.matchId, cmd.eventType, cmd.side, now),
           m = this.manager.get(cmd.matchId);
@@ -140,6 +180,7 @@ export class ReactionDirector {
         if (!this.busy) {
           this.state = 'THINKING';
           this.until = now + 200;
+          this.animation.play(directiveForAnimation('thinking', 0.45, 'chat'), now);
         }
         break;
       case 'skip':
@@ -281,6 +322,7 @@ export class ReactionDirector {
     if (this.pendingChatId) {
       this.state = 'THINKING';
       this.until = now + 200;
+      this.animation.play(directiveForAnimation('thinking', 0.45, 'chat'), now);
       return;
     }
     const item = this.scheduler.take(this.manager, this.settings, now);
@@ -360,17 +402,38 @@ export class ReactionDirector {
       now,
     );
   }
+  /** Connect real TTS playback callbacks here; the same clock drives speech and animation. */
+  updateVoiceTiming(
+    utteranceId: string,
+    positionMs: number,
+    durationMs: number,
+    cues: VisemeCue[],
+    now = Date.now(),
+  ): boolean {
+    if (!this.animation.updateSpeechTiming(utteranceId, positionMs, cues, durationMs, now))
+      return false;
+    this.until = now + Math.max(0, durationMs - positionMs);
+    return true;
+  }
+  voiceEnded(utteranceId: string, now = Date.now()): boolean {
+    if (!this.animation.finishSpeech(utteranceId, now)) return false;
+    this.until = now;
+    this.tick(now);
+    return true;
+  }
   snapshot(now = Date.now()): StudioSnapshot {
+    const animation = this.animation.frame(now);
     return structuredClone({
       mode: 'DEMO',
       state: this.state,
       decision: this.decision,
       camera: this.camera.current,
+      animation,
       avatar: {
         emotion: this.decision.emotion,
         gesture: this.decision.gesture,
         energy: this.decision.energy,
-        speaking: ['SPEAKING', 'REACTING'].includes(this.state),
+        speaking: animation.speaking,
       },
       activeMatches: this.manager.activeMatches,
       leagues: this.manager.leagues,

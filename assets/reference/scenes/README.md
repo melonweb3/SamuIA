@@ -37,3 +37,7 @@ El usuario pidió expresamente integrar avatar y habitación en una sola imagen 
 Ajustes → Presentación del avatar ofrece **Integrado** (predeterminado: una pose neutra fija por escena, un único PNG) y **Retratos originales** (capas con los cinco retratos intactos, sin el fondo blanco que antes añadía el contenedor CSS). Seleccionar un retrato activa el modo de capas. Las composiciones no tienen animación facial ni cambios de pose; los rótulos indican pose y plano fijos. Los datos del partido y la luz siguen siendo dinámicos.
 
 El HTML portátil contiene los cinco derivados y los diez PNG originales. La edición muestra «Escenas integradas v2». Para actualizar una copia descargada hay que volver a descargar el HTML.
+
+## Arquitectura posterior · Avatar SIMULATION v3
+
+La instrucción posterior del usuario establece `AvatarAnimationController` como contrato del personaje. Las escenas integradas v2 y los retratos son ahora fallbacks. Los estados, expresión, intensidad, cabeza/cuerpo, parpadeo, mirada y boca se envían independientemente de los PNG. El host permite conectar un renderer 2D/3D sobre las habitaciones originales vacías. SIMULATION comprueba las señales sin afirmar que las fotografías tienen rig facial. Consulta `docs/avatar-animation.md`.

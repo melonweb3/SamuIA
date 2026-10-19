@@ -1,5 +1,7 @@
 import {
   normalDecision,
+  directiveForAnimation,
+  directiveForDecision,
   scoreline,
   normalize,
   type AICommentatorProfile,
@@ -67,6 +69,7 @@ export class CommentaryEngine {
       delete draft.expression;
       draft.recallIds = [];
     }
+    draft.decision.avatar = directiveForDecision(draft.decision);
     return draft;
   }
   analyze(
@@ -225,6 +228,10 @@ export class CommentaryEngine {
             energy: 100,
           };
           break;
+        case 'missed_chance':
+          say = `¡Ufff! Ocasión fallada de ${name}. Esa no ha entrado.`;
+          draft.decision.emotion = 'serio';
+          break;
         case 'chance':
           say = this.choose(match, [
             `Ufff, esa era buenísima para ${name}. Otra ocasión apuntada.`,
@@ -279,6 +286,28 @@ export class CommentaryEngine {
       say += ` ${question}`;
       draft.question = question;
     }
+    const animation =
+      event.type === 'goal'
+        ? 'goal'
+        : event.type === 'var'
+          ? 'var'
+          : event.type === 'penalty'
+            ? 'penalty'
+            : event.type === 'missed_chance'
+              ? 'frustrated'
+              : ['chance', 'red'].includes(event.type)
+                ? 'shock'
+                : event.type === 'yellow'
+                  ? 'angry'
+                  : 'thinking';
+    const affinity = p.communityTeams[match.id];
+    const result =
+      event.type === 'fulltime' && affinity && match.score.home !== match.score.away
+        ? match.score[affinity] > match.score[affinity === 'home' ? 'away' : 'home']
+          ? 'win'
+          : 'loss'
+        : animation;
+    draft.decision.avatar = directiveForAnimation(result, draft.decision.energy / 100, 'match');
     draft.decision.say = say;
     return this.style(draft, match, p, event.type !== 'goal');
   }

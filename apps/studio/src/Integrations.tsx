@@ -27,6 +27,11 @@ export function Integrations() {
           ['YouTube', 'ChatProvider', 'Adaptador intercambiable sin conexión.'],
           ['TikTok', 'ChatProvider', 'Adaptador intercambiable sin conexión.'],
           [
+            'Avatar 2D/3D',
+            'AvatarRendererAdapter',
+            'AvatarAnimationController conectado al motor; renderer sustituible. Imágenes como fallback y señales verificables en SIMULATION.',
+          ],
+          [
             'Voz de SamuIA',
             'VoiceProvider',
             'Temporizador de reproducción; sin audio ni clonación.',

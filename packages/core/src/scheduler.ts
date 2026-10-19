@@ -11,6 +11,7 @@ const weights = {
   red: 90,
   var: 80,
   chance: 60,
+  missed_chance: 60,
   fulltime: 60,
   halftime: 30,
   yellow: 20,

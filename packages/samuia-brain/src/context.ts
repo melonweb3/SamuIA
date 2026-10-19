@@ -32,7 +32,7 @@ export function intensity(match: MatchState, event?: MatchEvent): LiveMatchConte
     Math.abs(match.score.home - match.score.away) <= 1
   )
     return 5;
-  if (event && ['goal', 'penalty', 'red', 'chance'].includes(event.type)) return 4;
+  if (event && ['goal', 'penalty', 'red', 'chance', 'missed_chance'].includes(event.type)) return 4;
   if (match.status === 'finished' && Math.abs(match.score.home - match.score.away) <= 1) return 5;
   const base = match.excitementScore >= 75 ? 3 : match.excitementScore >= 40 ? 2 : 1;
   return Math.min(3, base + (match.contextType === 'regular' ? 0 : 1)) as 1 | 2 | 3;

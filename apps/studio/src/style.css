@@ -2358,3 +2358,41 @@ footer {
     transition: none;
   }
 }
+
+.avatar-renderer-host {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+.animation-signals {
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+  font-size: 12px;
+}
+.animation-signals > b {
+  color: #85dec5;
+  font-size: 24px;
+}
+.animation-signals label {
+  display: grid;
+  gap: 6px;
+}
+.animation-signals meter {
+  width: 100%;
+}
+.animation-signals small {
+  color: #97a9b6;
+  line-height: 1.6;
+}
+.animation-gaze-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .avatar-renderer-host .avatar-frame {
+    transform: none !important;
+  }
+}

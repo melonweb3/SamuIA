@@ -223,7 +223,7 @@ test('escenarios integrados offline: selección, gráficos, luz e integridad de 
   );
   await context.setOffline(true);
   await page.goto('http://localhost/studio-setup');
-  await expect(page.locator('.local-chip')).toContainText('Escenas integradas v2');
+  await expect(page.locator('.local-chip')).toContainText('Avatar SIMULATION v3');
   await expect(page.locator('.scene-image')).toHaveAttribute(
     'data-scene-file',
     'samuia_setup_05.png',
@@ -261,4 +261,50 @@ test('escenarios integrados offline: selección, gráficos, luz e integridad de 
   await expect(page.locator('.scenery-light')).toHaveCount(0);
   await expect(page.locator('.scene-image')).toBeVisible();
   expect(network).toEqual([]);
+});
+
+test('SIMULATION offline: estados, mirada, boca, cancelación y evento real del CommentaryEngine', async ({
+  page,
+  context,
+}) => {
+  const html = await readFile(resolve('.local/SamuIA-Live-Studio.html'), 'utf8');
+  await page.route('http://localhost/animation', (route) =>
+    route.fulfill({ contentType: 'text/html', body: html }),
+  );
+  await context.setOffline(true);
+  await page.goto('http://localhost/animation');
+  await page.getByRole('button', { name: 'SIMULATION', exact: true }).click();
+  const selector = page.getByRole('combobox', { name: 'Animación del avatar', exact: true });
+  for (const animation of [
+    'goal',
+    'var',
+    'penalty',
+    'frustrated',
+    'laugh',
+    'shock',
+    'angry',
+    'happy',
+    'thinking',
+    'win',
+    'loss',
+    'talking',
+  ]) {
+    await selector.selectOption(animation);
+    await page.getByRole('button', { name: 'Ejecutar animación', exact: true }).click();
+    await expect(page.getByTestId('animation-state')).toHaveText(animation);
+  }
+  await expect(page.getByTestId('speech-status')).toContainText('Hablando');
+  await expect.poll(() => page.getByTestId('mouth-open').getAttribute('value')).not.toBe('0');
+  await page.getByRole('button', { name: 'Mirar: chat', exact: true }).click();
+  await expect(page.getByTestId('animation-gaze')).toHaveText('chat');
+  await page.getByRole('button', { name: 'Detener avatar y voz', exact: true }).click();
+  await expect(page.getByTestId('animation-state')).toHaveText('idle');
+  await expect(page.getByTestId('mouth-open')).toHaveAttribute('value', '0');
+  await expect(page.getByTestId('speech-status')).toContainText('En espera');
+  await page.getByRole('button', { name: 'Evento: goal', exact: true }).click();
+  await expect(page.getByTestId('animation-state')).toHaveText('goal', { timeout: 10000 });
+  await expect(page.getByTestId('animation-expression')).toHaveText('happy');
+  await expect(page.getByTestId('avatar-spoken-text')).toContainText('GOOOOOL');
+  await expect(page.getByTestId('animation-transitions')).toContainText('goal');
+  await page.screenshot({ path: '.local/avatar-simulation.png', fullPage: true });
 });

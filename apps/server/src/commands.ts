@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { eventTypes } from '../../../packages/shared/src/index';
+import { eventTypes, avatarAnimations, gazeTargets } from '../../../packages/shared/src/index';
 import { officialAvatarFiles } from '../../../packages/core/src/visual';
 const id = z.string().min(1).max(128),
   name = z.string().trim().min(1).max(80),
@@ -67,6 +67,16 @@ const profile = z
   .partial()
   .strict();
 export const commandSchema = z.discriminatedUnion('type', [
+  z
+    .object({
+      type: z.literal('avatar-simulate'),
+      animation: z.enum(avatarAnimations),
+      intensity: z.number().min(0).max(1),
+      text: z.string().max(500),
+      gaze: z.enum(gazeTargets),
+    })
+    .strict(),
+  z.object({ type: z.literal('avatar-gaze'), target: z.enum(gazeTargets) }).strict(),
   z
     .object({
       type: z.literal('event'),

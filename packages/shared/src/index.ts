@@ -1,3 +1,5 @@
+import type { AvatarDirective, AvatarAnimationFrame, AvatarAnimation, GazeTarget } from './avatar';
+export * from './avatar';
 export const scenes = [
   'charlando',
   'futbol',
@@ -29,6 +31,7 @@ export type Scene = (typeof scenes)[number];
 export type Emotion = (typeof emotions)[number];
 export type Camera = (typeof cameras)[number];
 export interface ReactionDecision {
+  avatar?: AvatarDirective;
   say: string;
   scene: Scene;
   emotion: Emotion;
@@ -39,6 +42,7 @@ export interface ReactionDecision {
 export const eventTypes = [
   'goal',
   'chance',
+  'missed_chance',
   'yellow',
   'red',
   'penalty',
@@ -53,6 +57,7 @@ export type Priority = 'ALTA' | 'MEDIA' | 'BAJA';
 export const eventLabels: Record<EventType, string> = {
   goal: 'Gol',
   chance: 'Ocasión clara',
+  missed_chance: 'Ocasión fallada',
   yellow: 'Amarilla',
   red: 'Roja',
   penalty: 'Penalti',
@@ -262,6 +267,7 @@ export interface StudioSnapshot {
   decision: ReactionDecision;
   camera: Camera;
   avatar: AvatarState;
+  animation: AvatarAnimationFrame;
   activeMatches: MatchState[];
   leagues: League[];
   mainMatchId: string | null;
@@ -287,6 +293,14 @@ export interface StudioSnapshot {
   now: number;
 }
 export type StudioCommand =
+  | {
+      type: 'avatar-simulate';
+      animation: AvatarAnimation;
+      intensity: number;
+      text: string;
+      gaze: GazeTarget;
+    }
+  | { type: 'avatar-gaze'; target: GazeTarget }
   | { type: 'event'; matchId: string; eventType: EventType; side: Side }
   | { type: 'chat'; username: string; message: string; matchId?: string }
   | { type: 'respond' | 'skip' | 'mute'; id: string }
