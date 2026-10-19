@@ -1,0 +1,57 @@
+[
+  {
+    "id": "01",
+    "originalFile": "assets/reference/scenes/originals/escena_01.png",
+    "archiveFile": "assets/reference/scenes/archives/escena_original_01.zip",
+    "sha256": "e6f0626dc402e20c23246f74d76775a3b97a516ec732e66c2261045a5f987976",
+    "archiveSha256": "c163f5fd47e1ee1c8cb3d1d9b748e9e57feef7416f644490e23736346022e102",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2819590,
+    "runtimeFile": "apps/studio/public/samuia/scenes/escena_01.png"
+  },
+  {
+    "id": "02",
+    "originalFile": "assets/reference/scenes/originals/escena_02.png",
+    "archiveFile": "assets/reference/scenes/archives/escena_original_02.zip",
+    "sha256": "32237d42554b46af5dd2b4cb2488366268ef68e78d6092a88987807b29c567e3",
+    "archiveSha256": "c8c4dfc1f956a741e7def1419fa0bd057d24b945b347cc019c291c63e891d497",
+    "width": 1672,
+    "height": 941,
+    "bytes": 3296368,
+    "runtimeFile": "apps/studio/public/samuia/scenes/escena_02.png"
+  },
+  {
+    "id": "03",
+    "originalFile": "assets/reference/scenes/originals/escena_03.png",
+    "archiveFile": "assets/reference/scenes/archives/escena_original_03.zip",
+    "sha256": "748d4cbb746443195422e6c5661abd83110e0a6873a1b2251056fad8eb41e079",
+    "archiveSha256": "aca845ea1106bbd1705a9e1a4e869a2b115233f0d320ca23e1944541591ff4af",
+    "width": 1672,
+    "height": 941,
+    "bytes": 3301187,
+    "runtimeFile": "apps/studio/public/samuia/scenes/escena_03.png"
+  },
+  {
+    "id": "04",
+    "originalFile": "assets/reference/scenes/originals/escena_04.png",
+    "archiveFile": "assets/reference/scenes/archives/escena_original_04.zip",
+    "sha256": "eea1541eb4d30a71fff0a958c4c2613f525244a64c2b18a8460197817b77c2f7",
+    "archiveSha256": "9fbd9a553670af3445d8acbcf8e7258923ddb0c8053b158ac16786ee587c0a2a",
+    "width": 1672,
+    "height": 941,
+    "bytes": 3117692,
+    "runtimeFile": "apps/studio/public/samuia/scenes/escena_04.png"
+  },
+  {
+    "id": "05",
+    "originalFile": "assets/reference/scenes/originals/escena_05.png",
+    "archiveFile": "assets/reference/scenes/archives/escena_original_05.zip",
+    "sha256": "05897ed6a7d563556f4b3c09b6c4744ab426c7bae91dc8044db072afef4bf514",
+    "archiveSha256": "d933b025273a14a934791f4d8693ff084910b57187ad3e05e524f7261413e539",
+    "width": 1672,
+    "height": 941,
+    "bytes": 3101007,
+    "runtimeFile": "apps/studio/public/samuia/scenes/escena_05.png"
+  }
+]

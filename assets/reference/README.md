@@ -52,3 +52,5 @@ Pueden variar expresión, mirada, gesto, encuadre, iluminación y fondo, manteni
 Los originales de referencia pertenecen a `assets/reference/`. Los derivados se preparan en `assets/runtime/avatar/` y `assets/runtime/scenes/`; su distribución para la aplicación usa `apps/studio/public/samuia/avatar/` y `apps/studio/public/samuia/scenes/`. El mapeo de nombres de ejecución está en `packages/core/src/visual.ts`.
 
 Antes de integrar cada derivado, compararlo con la lámina original. El SVG genérico del MVP ha sido retirado del componente del avatar. No alterar silenciosamente la identidad desde un selector de emoción o cámara.
+
+Los cinco escenarios originales se documentan en [scenes/README.md](scenes/README.md). El setup principal usa la referencia 05 con las copias exactas de `scenes/originals-index.json`; la selección de fondos y luz se define en `packages/core/src/scenery.ts`. Los gráficos del encuentro son capas independientes. No alterar el avatar al cambiar el escenario.

@@ -47,14 +47,6 @@ export function selectOfficialAvatar(
   if (state.emotion === 'sonrisa' || state.emotion === 'risa') return avatarAssets.sonrisa;
   return state.speaking ? avatarAssets.hablando : avatarAssets.neutral;
 }
-export const sceneAssets: Record<Scene, string> = {
-  charlando: 'chat.png',
-  futbol: 'football.png',
-  gaming: 'gaming.png',
-  tecnologia: 'tech.png',
-  enfado: 'angry-red.png',
-  celebracion: 'celebration.png',
-};
 export class CameraDirector {
   current: Camera = 'streamer';
   lastChangeAt = -Infinity;

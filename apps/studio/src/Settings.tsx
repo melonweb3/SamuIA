@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { studioBackdrops } from '../../../packages/core/src/scenery';
 import type {
   AICommentatorProfile,
   StudioSettings,
@@ -255,6 +256,60 @@ export function Settings({ state, send }: ViewProps) {
         </Panel>
       </div>
       <div>
+        <Panel title="Escenario del comentarista">
+          <div className="settings-body">
+            <label>
+              Setup principal
+              <select
+                aria-label="Setup principal"
+                value={state.settings.studioBackdrop}
+                onChange={(e) =>
+                  settings({ studioBackdrop: e.target.value as StudioSettings['studioBackdrop'] })
+                }
+              >
+                <option value="auto">Automático según la escena</option>
+                {Object.entries(studioBackdrops).map(([id, backdrop]) => (
+                  <option key={id} value={id}>
+                    {backdrop.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="toggle">
+              <span>
+                <b>Gráficos del partido</b>
+                <small>Equipos, marcador, minuto y competición del partido en foco.</small>
+              </span>
+              <input
+                type="checkbox"
+                role="switch"
+                aria-label="Gráficos del partido"
+                checked={state.settings.studioGraphics}
+                onChange={(e) => settings({ studioGraphics: e.target.checked })}
+              />
+            </label>
+            <label className="toggle">
+              <span>
+                <b>Iluminación reactiva</b>
+                <small>
+                  Azul en directo, ámbar en charla, rojo en tensión y verde en celebración.
+                </small>
+              </span>
+              <input
+                type="checkbox"
+                role="switch"
+                aria-label="Iluminación reactiva"
+                checked={state.settings.studioLighting}
+                onChange={(e) => settings({ studioLighting: e.target.checked })}
+              />
+            </label>
+            <p className="muted">
+              Base principal: original 05. Escritorio, monitores, micrófono y decoración gallega de
+              tus referencias. Los escudos y bufandas de las fotografías son fijos; los gráficos
+              superpuestos cambian con el partido. El avatar conserva su retrato original.
+            </p>
+          </div>
+        </Panel>
         <Panel title="Control del estudio">
           <div className="settings-body">
             {toggles.map(([field, label, description]) => (

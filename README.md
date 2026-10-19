@@ -147,3 +147,7 @@ Las pruebas cubren gestor, probabilidades, radar, carrusel, chat, scheduler, dir
 API: GET `/api/health`, `/api/state`, `/api/events` (SSE); POST `/api/command` (JSON, máximo 16 KiB). Comandos y esquemas en shared y server. Errores visibles en UI; SSE reconecta.
 
 Guarda el código con Git y envíalo al repositorio remoto; los archivos temporales y procesos cloud pueden desaparecer. La instantánea de entorno se conserva mediante revisión y publicación en sus ajustes, pero no sustituye al repositorio. Conserva también una copia descargada del HTML o del ZIP de código. Nunca consideres una ruta `/workspace/...` una copia permanente.
+
+### Setup del comentarista
+
+En **Ajustes → Escenario del comentarista** puedes elegir entre las cinco escenas originales, usar cambios automáticos según la escena y activar los gráficos del partido o la iluminación reactiva. La base principal es la referencia 05: madera, doble monitor, micrófono de brazo, plantas, recuerdos futbolísticos gallegos y luz azul/cálida. El marcador, el minuto y la competición siguen el partido en foco; la decoración fotografiada permanece fija. El avatar usa los retratos oficiales intactos en un panel central. Las cinco escenas también están incluidas en el HTML sin conexión. Consulta el [análisis y archivo de referencias](assets/reference/scenes/README.md).

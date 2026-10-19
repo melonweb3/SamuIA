@@ -15,6 +15,9 @@ const flags = z
   .strict();
 const settings = z
   .object({
+    studioBackdrop: z.enum(['auto', '01', '02', '03', '04', '05']),
+    studioGraphics: z.boolean(),
+    studioLighting: z.boolean(),
     autoReactions: z.boolean(),
     maxReactionsPerMinute: z.number().int().min(1).max(30),
     reactionCooldown: z.number().min(0).max(60),

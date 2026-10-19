@@ -196,7 +196,11 @@ export interface AICommentatorProfile {
   communityTeams: Record<string, Side | null>;
   specialRules: PersonalityRule[];
 }
+export type StudioBackdrop = 'auto' | '01' | '02' | '03' | '04' | '05';
 export interface StudioSettings {
+  studioBackdrop: StudioBackdrop;
+  studioGraphics: boolean;
+  studioLighting: boolean;
   autoReactions: boolean;
   maxReactionsPerMinute: number;
   reactionCooldown: number;
@@ -309,6 +313,9 @@ export type StudioCommand =
       kind: 'analysis' | 'prediction' | 'question' | 'community';
     };
 export const defaultSettings: StudioSettings = {
+  studioBackdrop: '05',
+  studioGraphics: true,
+  studioLighting: true,
   autoReactions: true,
   maxReactionsPerMinute: 8,
   reactionCooldown: 4,

@@ -197,3 +197,54 @@ test('si falla un retrato solo recurre a otro original o muestra un aviso', asyn
   await expect(page.locator('svg.placeholder')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Reintentar imagen' })).toBeVisible();
 });
+
+test('escenarios oficiales offline: selección, gráficos, luz e integridad de los cinco fondos', async ({
+  page,
+  context,
+}) => {
+  const html = await readFile(resolve('.local/SamuIA-Live-Studio.html'), 'utf8');
+  const originals: { id: string; runtimeFile: string; sha256: string }[] = JSON.parse(
+    await readFile('assets/reference/scenes/originals-index.json', 'utf8'),
+  );
+  const network: string[] = [];
+  page.on('request', (request) => {
+    if (!request.isNavigationRequest() && /^https?:/.test(request.url()))
+      network.push(request.url());
+  });
+  await page.route('http://localhost/studio-setup', (route) =>
+    route.fulfill({ contentType: 'text/html', body: html }),
+  );
+  await context.setOffline(true);
+  await page.goto('http://localhost/studio-setup');
+  await expect(page.locator('.scene-image')).toHaveAttribute('data-scene-file', 'escena_05.png');
+  for (const entry of originals) {
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click();
+    await page
+      .getByRole('combobox', { name: 'Setup principal', exact: true })
+      .selectOption(entry.id);
+    await page.getByRole('button', { name: 'Dashboard', exact: true }).click();
+    const img = page.locator('.scene-image');
+    await expect(img).toHaveAttribute('data-scene-file', entry.runtimeFile.split('/').at(-1)!);
+    await expect.poll(() => img.evaluate((e: HTMLImageElement) => e.naturalWidth)).toBe(1672);
+    const source = await img.getAttribute('src');
+    expect(
+      createHash('sha256')
+        .update(Buffer.from(source!.split(',')[1], 'base64'))
+        .digest('hex'),
+    ).toBe(entry.sha256);
+  }
+  await expect(page.locator('.studio-team.home')).toHaveText('Celta');
+  await expect(page.locator('.studio-team.away')).toHaveText('Madrid');
+  await page.getByRole('button', { name: '+ Gol Celta', exact: true }).click();
+  await expect(page.locator('.studio-score')).toHaveText('1 – 0');
+  await expect(page.locator('.scenery-light')).toHaveAttribute('data-mood', 'celebracion');
+  await page.screenshot({ path: '.local/studio-setup.png', fullPage: true });
+  await page.getByRole('button', { name: 'Ajustes', exact: true }).click();
+  await page.getByRole('switch', { name: 'Gráficos del partido', exact: true }).uncheck();
+  await page.getByRole('switch', { name: 'Iluminación reactiva', exact: true }).uncheck();
+  await page.getByRole('button', { name: 'Dashboard', exact: true }).click();
+  await expect(page.locator('.studio-match-graphics')).toHaveCount(0);
+  await expect(page.locator('.scenery-light')).toHaveCount(0);
+  await expect(page.locator('.avatar-image')).toBeVisible();
+  expect(network).toEqual([]);
+});
