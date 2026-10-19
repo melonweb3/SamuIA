@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "identityId": "samuia-main-v1",
+  "characterName": "SamuIA",
+  "role": "main-commentator",
+  "sameCharacterAcrossAllViews": true,
+  "source": {
+    "kind": "user-provided-conversation-image",
+    "receivedDate": "2026-10-19",
+    "description": "Lámina de cinco retratos del mismo personaje: tres arriba y dos abajo.",
+    "storageStatus": "original-file-required",
+    "originalFile": null,
+    "sha256": null
+  },
+  "invariants": {
+    "face": "Conservar la estructura facial, rasgos, proporciones y asimetrías de la lámina.",
+    "eyes": "Marrones; cejas oscuras, pobladas y marcadas.",
+    "hair": "Corto y oscuro, con la misma línea del pelo y patillas.",
+    "facialHair": "Barba corta oscura y bigote.",
+    "skin": "Tono cálido y textura natural de la referencia.",
+    "cap": "Beige claro hacia atrás, correa y hebilla visibles en la frente.",
+    "clothing": "Sudadera lisa crema/blanco roto con capucha y cordones claros.",
+    "build": "Mantener proporciones visibles de cabeza, cuello, hombros y torso superior.",
+    "style": "Retrato fotográfico realista."
+  },
+  "views": [
+    { "position": "top-left", "expression": "open-smile" },
+    { "position": "top-center", "expression": "thoughtful", "gesture": "hand-on-chin" },
+    { "position": "top-right", "expression": "relaxed-closed-mouth" },
+    { "position": "bottom-left", "expression": "slightly-open-mouth" },
+    { "position": "bottom-right", "expression": "serious-neutral" }
+  ],
+  "allowedVariations": ["expression", "gaze", "gesture", "framing", "lighting", "background"],
+  "notEstablished": ["full-body-proportions", "height", "trousers", "footwear"],
+  "runtime": {
+    "currentAvatar": "technical-placeholder",
+    "placeholderIsOfficialIdentity": false,
+    "referenceIntegrated": false,
+    "approvedDerivedFiles": []
+  }
+}

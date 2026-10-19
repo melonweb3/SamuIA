@@ -126,6 +126,8 @@ Las estimaciones son deterministas: modelo Poisson de goles restantes con marcad
 
 ## Assets y proveedores futuros
 
+La identidad oficial del personaje está definida en [assets/reference/README.md](assets/reference/README.md) y [su manifiesto](assets/reference/identity.json), a partir de los cinco retratos del mismo personaje aportados por el usuario. Debe mantenerse en todas las expresiones y cámaras. El archivo original de la lámina aún está pendiente de incorporación; el SVG actual es un placeholder técnico, no el avatar oficial.
+
 Avatar: `apps/studio/public/samuia/avatar/` con `neutral.png`, `smile.png`, `talking.png`, `laugh.png`, `surprised.png`, `thinking.png`, `serious.png`, `angry.png`. Se reservan `three-quarter-left.png`, `three-quarter-right.png`, `medium.png`, `streamer.png`. Las cámaras actuales son escala, posición y giro del mismo placeholder, no cámaras físicas.
 
 Escenas: `public/samuia/scenes/` con `chat.png`, `football.png`, `gaming.png`, `tech.png`, `angry-red.png`, `celebration.png`. Mapeos en `core/src/visual.ts`. El avatar mantiene proporciones con contain; el fondo usa cover. Cambiar escena no reinicia el avatar. Hay transiciones y soporte de movimiento reducido. La distribución portátil no carga archivos gráficos externos.
