@@ -2396,3 +2396,39 @@ footer {
     transform: none !important;
   }
 }
+
+/* Preserve the full reference composition and its microphone/desk occlusion. */
+.avatar-stage {
+  aspect-ratio: 1672 / 941;
+  height: auto;
+}
+.avatar-stage .scene-image {
+  object-fit: contain;
+  animation: none;
+  transform: none;
+}
+.avatar-reference-background {
+  position: absolute;
+  inset: 0;
+  background: #15212c;
+}
+.avatar-stage .avatar-reference-frame {
+  height: 85%;
+  width: 70%;
+  left: 15%;
+  bottom: 7%;
+  border-radius: 0;
+  transform: none;
+  transition: none;
+}
+.avatar-stage .avatar-reference-frame .avatar-image {
+  animation: none;
+  transform: none;
+}
+/* Broadcast data belongs below the photo, never over the microphone. */
+.studio-match-graphics {
+  position: static;
+  padding: 10px 8% 12px;
+  background: #0c1720;
+  filter: none;
+}

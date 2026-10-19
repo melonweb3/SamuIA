@@ -153,7 +153,7 @@ export function App({ session }: { session?: ReactionDirector }) {
           <i className={connected ? 'dot' : 'dot offline'} />
           <span>
             {connected ? 'Sistema local conectado' : 'Conectando al servidor'}
-            <small>Sin APIs externas · Avatar SIMULATION v3</small>
+            <small>Sin APIs externas · Avatar SIMULATION v3.1</small>
           </span>
         </div>
       </aside>
@@ -164,7 +164,7 @@ export function App({ session }: { session?: ReactionDirector }) {
           </span>
           <div>
             <span className="local-chip">
-              ⌁ {session ? 'Demo portátil' : 'Entorno local'} · Avatar SIMULATION v3
+              ⌁ {session ? 'Demo portátil' : 'Entorno local'} · Avatar SIMULATION v3.1
             </span>
             <span className="profile-icon">S</span>
             <span>

@@ -74,9 +74,9 @@ export function Settings({ state, send }: ViewProps) {
                 ))}
               </select>
               <small>
-                Seleccionar un retrato activa el modo de capas con el original, sin fondo blanco. La
-                composición integrada usa una pose fija. Los cinco retratos se conservan en el HTML
-                portátil.
+                Seleccionar un retrato abre el visor de referencia, sin montarlo sobre la
+                habitación. La composición integrada usa una pose fija. Los cinco retratos se
+                conservan en el HTML portátil.
               </small>
             </label>
             <label>
@@ -274,7 +274,7 @@ export function Settings({ state, send }: ViewProps) {
                 }
               >
                 <option value="integrated">Integrado · personaje y escenario en una imagen</option>
-                <option value="portrait">Retratos originales · capas sin fondo blanco</option>
+                <option value="portrait">Retratos originales · visor de referencia</option>
               </select>
               <small>
                 Integrado incluye a SamuIA sentado en cada escenario. Son imágenes estáticas, con

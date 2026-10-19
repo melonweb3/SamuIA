@@ -175,6 +175,8 @@ test('las cinco referencias se ven offline y mantienen exactamente los PNG origi
     await page.getByRole('button', { name: 'Dashboard', exact: true }).click();
     const image = page.locator('.avatar-image');
     await expect(image).toHaveAttribute('data-avatar-file', filename);
+    await expect(page.locator('.scene-image')).toHaveCount(0);
+    await expect(page.locator('.avatar-frame')).toHaveCSS('transform', 'none');
     await expect(page.locator('.avatar-frame')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     await expect
       .poll(() => image.evaluate((element: HTMLImageElement) => element.naturalWidth))
@@ -223,7 +225,7 @@ test('escenarios integrados offline: selección, gráficos, luz e integridad de 
   );
   await context.setOffline(true);
   await page.goto('http://localhost/studio-setup');
-  await expect(page.locator('.local-chip')).toContainText('Avatar SIMULATION v3');
+  await expect(page.locator('.local-chip')).toContainText('Avatar SIMULATION v3.1');
   await expect(page.locator('.scene-image')).toHaveAttribute(
     'data-scene-file',
     'samuia_setup_05.png',
@@ -238,6 +240,12 @@ test('escenarios integrados offline: selección, gráficos, luz e integridad de 
     await expect(page.locator('.avatar-frame')).toHaveCount(0);
     await expect(page.locator('.avatar-stage img')).toHaveCount(1);
     await expect(img).toHaveAttribute('data-composition', 'integrated');
+    await expect(img).toHaveCSS('object-fit', 'contain');
+    await expect(img).toHaveCSS('transform', 'none');
+    const viewport = await page.locator('.avatar-stage').boundingBox();
+    expect(viewport!.width / viewport!.height).toBeCloseTo(1672 / 941, 2);
+    const scoreboard = await page.locator('.studio-match-graphics').boundingBox();
+    expect(scoreboard!.y).toBeGreaterThanOrEqual(viewport!.y + viewport!.height - 1);
     await expect(img).toHaveAttribute('data-scene-file', entry.runtimeFile.split('/').at(-1)!);
     await expect.poll(() => img.evaluate((e: HTMLImageElement) => e.naturalWidth)).toBe(1672);
     const source = await img.getAttribute('src');
@@ -274,6 +282,12 @@ test('SIMULATION offline: estados, mirada, boca, cancelación y evento real del 
   await context.setOffline(true);
   await page.goto('http://localhost/animation');
   await page.getByRole('button', { name: 'SIMULATION', exact: true }).click();
+  await expect(page.locator('.scene-image')).toHaveAttribute(
+    'data-scene-file',
+    'samuia_setup_05.png',
+  );
+  await expect(page.locator('.avatar-frame')).toHaveCount(0);
+  await expect(page.locator('.avatar-stage img')).toHaveCount(1);
   const selector = page.getByRole('combobox', { name: 'Animación del avatar', exact: true });
   for (const animation of [
     'goal',
@@ -303,8 +317,20 @@ test('SIMULATION offline: estados, mirada, boca, cancelación y evento real del 
   await expect(page.getByTestId('speech-status')).toContainText('En espera');
   await page.getByRole('button', { name: 'Evento: goal', exact: true }).click();
   await expect(page.getByTestId('animation-state')).toHaveText('goal', { timeout: 10000 });
+  await expect(page.locator('.scene-image')).toHaveCSS('transform', 'none');
+  await expect(page.locator('.avatar-renderer-host')).not.toHaveAttribute(
+    'style',
+    /avatar-bob|avatar-roll/,
+  );
   await expect(page.getByTestId('animation-expression')).toHaveText('happy');
   await expect(page.getByTestId('avatar-spoken-text')).toContainText('GOOOOOL');
   await expect(page.getByTestId('animation-transitions')).toContainText('goal');
   await page.screenshot({ path: '.local/avatar-simulation.png', fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobileFrame = await page.locator('.avatar-stage').boundingBox();
+  expect(mobileFrame!.width / mobileFrame!.height).toBeCloseTo(1672 / 941, 2);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+  await page.screenshot({ path: '.local/avatar-simulation-mobile.png', fullPage: true });
 });

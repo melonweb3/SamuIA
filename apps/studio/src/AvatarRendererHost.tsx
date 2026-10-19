@@ -62,15 +62,10 @@ export function AvatarRendererHost({
         expressions: false,
         gaze: false,
       },
-      update(sample) {
-        // A subtle whole-portrait preview, never simulated facial rigging on the original photo.
-        element.style.setProperty('--avatar-bob', `${sample.body.bob * 12}px`);
-        element.style.setProperty('--avatar-roll', `${sample.head.roll * 0.2}deg`);
+      update() {
+        // Reference images remain still. Motion requires a renderer with a character rig.
       },
-      dispose() {
-        element.style.removeProperty('--avatar-bob');
-        element.style.removeProperty('--avatar-roll');
-      },
+      dispose() {},
     };
     const renderer = factory ? factory(element) : fallback;
     let raf = 0;

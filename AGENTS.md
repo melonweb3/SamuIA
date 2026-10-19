@@ -13,3 +13,5 @@ Antes de crear, editar o integrar avatares, expresiones, escenas o assets del co
 - Antes de modificar escenarios, lee `assets/reference/scenes/README.md`: originales ZIP/PNG conservados sin alteración, principal 05, gráficos y luz en capas independientes. Las banderas y escudos fotografiados son fijos; no confundirlos con los rótulos dinámicos del partido en foco.
 
 - Instrucción posterior del usuario: la arquitectura del personaje se basa en `AvatarAnimationController`, no en imágenes fijas. Lee `docs/avatar-animation.md`. Las composiciones y retratos son fallbacks; conserva sus bytes. Usa el contrato independiente de animación, expresión, intensidad, mirada y habla para cualquier avatar 2D/3D futuro. No presentes los medidores simulados como animación facial o voz real.
+
+- Corrección de encuadre posterior: los fallbacks permanecen quietos y muestran el escenario completo en 1672:941. SIMULATION respeta la presentación seleccionada; no fuerces retratos sobre la habitación. Los retratos originales se muestran como referencia aparte, sin montaje con el micrófono o escritorio. Las señales de animación solo deben mover un renderer con rig.

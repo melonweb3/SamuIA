@@ -32,17 +32,16 @@ export function AvatarSimulation({ state, send }: ViewProps) {
       <div className="info-banner">
         <b>SIMULATION · AvatarAnimationController</b>
         <p>
-          Prueba las señales que recibirá el avatar 2D/3D. La imagen actual es un fallback: no tiene
-          rig facial ni audio real. Las pruebas manuales interrumpen la frase actual; no añaden
-          goles ni resultados.
+          Prueba las señales que recibirá el avatar 2D/3D. La referencia permanece quieta: no hay
+          rig facial ni audio real. Los medidores verifican el controlador, no una animación de la
+          fotografía. Las pruebas manuales interrumpen la frase actual; no añaden goles ni
+          resultados.
         </p>
       </div>
       <div className="two-col">
         <div>
           <Panel title="Avatar y señales en tiempo real">
-            <Avatar
-              state={{ ...state, settings: { ...state.settings, studioComposition: 'portrait' } }}
-            />
+            <Avatar state={state} />
             <div className="animation-signals" aria-label="Estado de animación">
               <b data-testid="animation-state">{live.animation}</b>
               <span>

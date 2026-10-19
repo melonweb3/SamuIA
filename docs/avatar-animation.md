@@ -49,7 +49,7 @@ Los borradores antiguos sin `avatar` se normalizan desde emoción y gesto. Esto 
 - `mouth`: visema y apertura 0–1; `speech`: ID de frase, texto, reloj y cues.
 - `transitions`: últimas 30 transiciones; ayuda a verificar clips y cancelaciones.
 
-El fallback de imágenes **no tiene rig**, parpadeo facial ni deformación de boca/ojos. Solo muestra los originales (con pequeños desplazamientos globales del retrato) o las composiciones completas. Sus capacidades de rig están marcadas como falsas. SIMULATION muestra los movimientos pendientes como señales y medidores; no se presenta como un avatar 3D terminado. No se mueve toda la habitación para fingir movimiento del personaje.
+El fallback de imágenes **no tiene rig**, parpadeo facial ni deformación de boca/ojos. Muestra las composiciones completas y quietas. Los retratos originales se consultan en un visor separado sin montaje sobre la habitación. Se ha eliminado el balanceo y el zoom del retrato. Sus capacidades de rig están marcadas como falsas. SIMULATION muestra los movimientos pendientes como señales y medidores; no se presenta como un avatar 3D terminado. No se mueve toda la habitación para fingir movimiento del personaje.
 
 ## Conectar un modelo 2D o 3D
 
@@ -101,3 +101,9 @@ Abre **SIMULATION**. Puedes elegir los 13 estados, texto e intensidad, ejecutar 
 Los controles «Ejecutar animación» son previsualizaciones explícitas: interrumpen la frase, no modifican resultados ni memoria de partido. Los botones «Evento: …» sí pasan por el motor deportivo y las reglas normales; si está hablando o hay cooldown, esperan en cola. No desactivan filtros en silencio.
 
 La edición descargable muestra **Avatar SIMULATION v3**. Vuelve a descargar el HTML para actualizar una copia anterior. Las pruebas cubren señales, estados, tiempos de voz, interrupciones, callbacks tardíos, mapeos de eventos, datos deportivos, API y simulación offline en navegador.
+
+## Corrección de encuadre · v3.1
+
+SIMULATION respeta la misma presentación elegida en Dashboard; ya no fuerza un retrato superpuesto sobre el micrófono. La vista de escenario conserva la relación 1672:941 completa y sin recortar los laterales. Los fallbacks no reciben transformaciones de cámara, balanceo o respiración. Las señales siguen activas para un renderer con rig real. El visor de retratos originales no muestra la habitación ni simula su integración con el mobiliario.
+
+El marcador y la competición se muestran debajo de la imagen, fuera del encuadre, para no tapar el micrófono ni el escritorio.

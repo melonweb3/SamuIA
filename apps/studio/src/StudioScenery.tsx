@@ -50,6 +50,14 @@ export function StudioScenery({ state }: { state: StudioSnapshot }) {
           style={{ '--studio-light': scene.light } as CSSProperties}
         />
       )}
+    </>
+  );
+}
+
+export function StudioMatchGraphics({ state }: { state: StudioSnapshot }) {
+  const scene = studioScenery(state);
+  return (
+    <>
       {state.settings.studioGraphics && (
         <div className="studio-match-graphics" aria-label="Gráficos del partido">
           <div className="studio-competition">{scene.competition}</div>
