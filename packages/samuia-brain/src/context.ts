@@ -88,7 +88,8 @@ export class LiveMatchContextService {
     const c = this.get(match.id);
     c.intensity = intensity(match, event);
     for (const p of c.personalityMemory.predictions) {
-      if (p.status !== 'pending' || event.timestamp < p.timestamp) continue;
+      if (p.status !== 'pending' || event.timestamp < p.timestamp || event.minute < p.minute)
+        continue;
       if (event.type === 'goal' && event.minute <= p.expiresMinute)
         this.resolve(
           c,
@@ -244,6 +245,12 @@ export class LiveMatchContextService {
     return this.get(matchId).personalityMemory.predictions.find((p) => p.status === 'pending');
   }
   leader(match: MatchState): Side | null {
+    if (
+      match.liveData &&
+      (!match.liveData.availableStatistics.home.includes('xG') ||
+        !match.liveData.availableStatistics.away.includes('xG'))
+    )
+      return null;
     const d = match.statistics.home.xG - match.statistics.away.xG;
     return Math.abs(d) < 0.2 ? null : d > 0 ? 'home' : 'away';
   }

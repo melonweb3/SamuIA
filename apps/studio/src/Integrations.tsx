@@ -3,8 +3,11 @@ export function Integrations() {
   return (
     <>
       <div className="info-banner">
-        <b>Un estudio local. Cero credenciales.</b>
-        <p>Todos los adaptadores son mocks. No se emite ni se conecta con plataformas externas.</p>
+        <b>Proveedores independientes, configuración en el servidor.</b>
+        <p>
+          SIMULATION funciona sin claves. LIVE admite HTTP JSON y API-Football con configuración
+          privada en el servidor. Las integraciones sociales y OBS siguen como mocks.
+        </p>
       </div>
       <div className="integration-grid">
         {[
@@ -15,13 +18,18 @@ export function Integrations() {
           ],
           [
             'Datos deportivos',
-            'SportsDataProvider',
-            'Encuentros y eventos simulados; futuro proveedor autorizado.',
+            'MatchDataProvider / LiveCommentaryProvider',
+            'Datos normalizados, narración opcional, reconexión y fallback con eventos.',
           ],
           [
             'OBS Studio',
             'OBSController',
             'Escenas, fuentes, cámara virtual, overlays, iluminación y avatar.',
+          ],
+          [
+            'Comunidad propia',
+            'CommunityCommentProvider',
+            'Mensajes de la app con partido, ID y timestamp; cola y memoria existentes.',
           ],
           ['Twitch', 'ChatProvider', 'Buzón mock de comentarios y envío.'],
           ['YouTube', 'ChatProvider', 'Adaptador intercambiable sin conexión.'],
@@ -34,10 +42,20 @@ export function Integrations() {
           [
             'Voz de SamuIA',
             'VoiceProvider',
-            'Temporizador de reproducción; sin audio ni clonación.',
+            'Controlador TTS independiente; simulación y voz local opcional en Partido de prueba.',
           ],
         ].map(([name, contract, text]) => (
-          <Panel key={name} title={name} meta={<Badge>MOCK</Badge>}>
+          <Panel
+            key={name}
+            title={name}
+            meta={
+              <Badge>
+                {['Datos deportivos', 'Comunidad propia', 'Voz de SamuIA'].includes(name)
+                  ? 'ADAPTER'
+                  : 'MOCK'}
+              </Badge>
+            }
+          >
             <div className="integration-body">
               <span>⌘</span>
               <code>{contract}</code>

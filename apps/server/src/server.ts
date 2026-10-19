@@ -1,11 +1,16 @@
+import { createConfiguredLiveSession } from './live-config';
+import type { LiveDataSession } from '../../../packages/live-data/src/index';
 import { createServer, type ServerResponse } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { resolve, sep, extname } from 'node:path';
 import { ReactionDirector } from '../../../packages/core/src/index';
 import { commandSchema } from './commands';
-export function createStudioServer() {
-  const director = new ReactionDirector(),
-    clients = new Set<ServerResponse>(),
+export function createStudioServer(options: { live?: LiveDataSession } = {}) {
+  const simulation = new ReactionDirector();
+  const live = options.live ?? createConfiguredLiveSession();
+  let director = simulation;
+  const snapshot = () => (director === live.director ? live.snapshot() : director.snapshot());
+  const clients = new Set<ServerResponse>(),
     root = resolve('apps/studio/dist');
   const json = (res: ServerResponse, status: number, value: unknown) => {
     res.writeHead(status, {
@@ -16,7 +21,7 @@ export function createStudioServer() {
   };
   const broadcast = () => {
     if (!clients.size) return;
-    const data = `data: ${JSON.stringify(director.snapshot())}\n\n`;
+    const data = `data: ${JSON.stringify(snapshot())}\n\n`;
     for (const client of clients)
       if (client.writableLength > 1000000) {
         clients.delete(client);
@@ -24,7 +29,8 @@ export function createStudioServer() {
       } else client.write(data);
   };
   const timer = setInterval(() => {
-    director.tick();
+    if (director === live.director) live.tick();
+    else director.tick();
     broadcast();
   }, 250);
   const server = createServer(async (req, res) => {
@@ -32,15 +38,19 @@ export function createStudioServer() {
     try {
       const path = new URL(req.url ?? '/', 'http://localhost').pathname;
       if (req.method === 'GET' && path === '/api/health')
-        return json(res, 200, { ok: true, mode: 'DEMO', provider: 'local-mock' });
-      if (req.method === 'GET' && path === '/api/state') return json(res, 200, director.snapshot());
+        return json(res, 200, {
+          ok: true,
+          mode: director.dataMode,
+          provider: director === simulation ? 'local-mock' : live.diagnostics.provider,
+        });
+      if (req.method === 'GET' && path === '/api/state') return json(res, 200, snapshot());
       if (req.method === 'GET' && path === '/api/events') {
         res.writeHead(200, {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
           Connection: 'keep-alive',
         });
-        res.write(`data: ${JSON.stringify(director.snapshot())}\n\n`);
+        res.write(`data: ${JSON.stringify(snapshot())}\n\n`);
         clients.add(res);
         req.on('close', () => clients.delete(res));
         return;
@@ -69,9 +79,38 @@ export function createStudioServer() {
             error: 'Comando inválido',
             details: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
           });
-        director.command(parsed.data);
+        const command = parsed.data;
+        if (command.type === 'data-mode') {
+          const target = command.mode === 'LIVE' ? live.director : simulation;
+          if (target !== director) {
+            const settings = structuredClone(director.settings),
+              profile = structuredClone(director.profile);
+            if (director === live.director) live.pause();
+            else director.command({ type: 'control', action: 'silence' });
+            director = target;
+            director.settings = settings;
+            director.profile = profile;
+            if (director === live.director) live.resume();
+          }
+        } else {
+          if (
+            director === live.director &&
+            ['event', 'match-add', 'match-remove', 'match-status', 'avatar-simulate'].includes(
+              command.type,
+            )
+          )
+            return json(res, 409, {
+              error:
+                'Los datos LIVE solo los actualiza el proveedor. Cambia a SIMULATION para simular eventos',
+            });
+          if (director === live.director && command.type === 'comment' && !director.dataFresh)
+            return json(res, 409, {
+              error: 'Los datos LIVE están pendientes o desactualizados; espera a la reconexión',
+            });
+          director.command(command);
+        }
         broadcast();
-        return json(res, 200, director.snapshot());
+        return json(res, 200, snapshot());
       }
       if (path.startsWith('/api/')) return json(res, 404, { error: 'Ruta no encontrada' });
       if (!['GET', 'HEAD'].includes(req.method ?? ''))
@@ -104,9 +143,10 @@ export function createStudioServer() {
   });
   const stop = () => {
     clearInterval(timer);
+    live.pause();
     for (const client of clients) client.end();
     server.close();
   };
   server.on('close', () => clearInterval(timer));
-  return { server, director, stop };
+  return { server, director: simulation, live, stop };
 }

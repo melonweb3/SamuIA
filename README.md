@@ -1,6 +1,6 @@
 # SamuIA Live Studio · 0.2
 
-Estudio local de un streamer futbolero con personalidad configurable y memoria por partido. TypeScript + React + Node.js + pnpm, con cuatro encuentros simultáneos, chat, radar, cola de reacciones y director visual. **Partidos y comentarios generados por el motor local. Avatar con imágenes oficiales como fallback estático. Voz simulada o TTS local opcional del navegador. Sin APIs externas.**
+Estudio local de un streamer futbolero con personalidad configurable y memoria por partido. TypeScript + React + Node.js + pnpm, con cuatro encuentros simultáneos, chat, radar, cola de reacciones y director visual. **SIMULATION funciona sin claves. LIVE admite datos normalizados mediante HTTP JSON o API-Football, con configuración privada en el servidor. Comentarios del motor local, avatar oficial como fallback estático y voz desacoplada.**
 
 Esta versión reconstruye el MVP descrito en la conversación y añade la personalidad con memoria. No es una recuperación binaria del archivo anterior.
 
@@ -8,7 +8,7 @@ Esta versión reconstruye el MVP descrito en la conversación y añade la person
 
 Descarga **[downloads/SamuIA-Live-Studio.html](downloads/SamuIA-Live-Studio.html)** y abre el archivo guardado con un navegador moderno. Contiene React, estilos y los mismos motores dentro de un único HTML; no necesita servidor ni Internet. En GitHub, usa el botón de descargar el archivo: la vista del código HTML no es la aplicación.
 
-**Para actualizar una copia anterior:** vuelve a descargar el HTML; el archivo guardado en tu ordenador no se actualiza al cambiar GitHub. Guárdalo como `SamuIA-retransmision-mvp-v5.html` y abre ese archivo nuevo. Esta edición muestra **«Retransmisión MVP v5»** arriba, incluye los cinco fondos originales y permite elegirlos en **Ajustes → Escenario del comentarista → Setup principal**. Incluye cinco composiciones con personaje y habitación unidos en una imagen por escena, sin marco ni fondo blanco. Si no ves ese indicador, estás abriendo otra edición.
+**Para actualizar una copia anterior:** vuelve a descargar el HTML; el archivo guardado en tu ordenador no se actualiza al cambiar GitHub. Guárdalo como `SamuIA-live-providers-v6.html` y abre ese archivo nuevo. Esta edición muestra **«LIVE Providers v6»** arriba, incluye los cinco fondos originales y permite elegirlos en **Ajustes → Escenario del comentarista → Setup principal**. Incluye cinco composiciones con personaje y habitación unidos en una imagen por escena, sin marco ni fondo blanco. Si no ves ese indicador, estás abriendo otra edición.
 
 Cada pestaña tiene su propia sesión. **Recargar el HTML restaura la demo inicial**. Puedes exportar los datos de memoria como JSON desde Memoria (es una exportación para consulta, no un importador de sesiones). La voz predeterminada es simulada sin audio; en Partido de prueba se puede seleccionar TTS local del navegador. El avatar usa las cinco fotografías originales oficiales; los fondos siguen siendo escenarios de demostración.
 
@@ -49,7 +49,7 @@ corepack pnpm install --frozen-lockfile --store-dir /workspace/.cache/pnpm-store
 corepack pnpm dev
 ```
 
-`corepack pnpm` sustituye a `pnpm` si no está activado. `.env.example` contiene solo HOST y PORT, sin claves. Node no carga `.env` automáticamente: exporta variables o usa `node --env-file=.env apps/server/dist/index.js`. El backend escucha en loopback por defecto; requiere autenticación y revisión adicional antes de exponerlo como servicio público.
+`corepack pnpm` sustituye a `pnpm` si no está activado. `.env.example` incluye HOST, PORT y las opciones LIVE, sin claves reales. Copia el ejemplo a `.env`: el punto de entrada del servidor lo carga automáticamente en Node 22+. También puedes exportar las variables del entorno. El backend escucha en loopback por defecto; requiere autenticación y revisión adicional antes de exponerlo como servicio público.
 
 ## Recorrido del MVP
 
@@ -58,10 +58,10 @@ corepack pnpm dev
 3. Añade un comentario «¿Cómo va el Liverpool?» y pulsa Responder. Consulta ese encuentro, no el principal. «¿Cuál está más interesante?» consulta todos los partidos seguidos.
 4. Añade o elimina partidos y competiciones. Activa seguimiento, pausa reacciones, prioridades y filtros por encuentro. Amarillas y cambios no generan reacciones por defecto.
 5. Quita el principal y activa Modo carrusel en Ajustes. Cambia por relevancia, eventos recientes, prioridad, favoritos y tiempo desde la visita; no rota por tiempo únicamente. Las preguntas sobre otro partido lo enfocan temporalmente.
-6. El reloj avanza **un minuto simulado cada 15 segundos reales**, hasta 95. Descanso y Final son manuales; reanuda la segunda parte con su botón. Finalizados y próximos no avanzan.
+6. En SIMULATION el reloj avanza **un minuto simulado cada 15 segundos reales**, hasta 95. Descanso y Final son manuales; reanuda la segunda parte con su botón. Finalizados y próximos no avanzan.
 7. **Callar** cancela explícitamente; los eventos y otros controles esperan a terminar la frase. El chat se responde manualmente. El comentario editorial automático tiene su propia frecuencia y comparte los límites de intervenciones.
 
-Los datos se mantienen en memoria del proceso de Node o de la pestaña portátil. Reiniciar el servidor restaura los cuatro encuentros. Varias pestañas conectadas al backend comparten el mismo estudio. El panel muestra DEMO u OFFLINE; LIVE queda para futuras integraciones.
+Los datos se mantienen en memoria del proceso de Node o de la pestaña portátil. Reiniciar el servidor restaura los cuatro encuentros. Varias pestañas conectadas al backend comparten el mismo estudio. El panel muestra SIMULATION o LIVE y el estado de conexión. LIVE requiere configurar un proveedor en el servidor; los datos de cada modo se conservan separados al alternar.
 
 ## Personalidad con memoria
 
@@ -107,6 +107,7 @@ packages/chat-engine/    ChatQueue, prioridad, temas y referencias de equipos
 packages/samuia-brain/   CommentaryEngine, LiveMatchContextService y SamuIABrain
 packages/core/           ReactionDirector, scheduler, cámara y escenas
 packages/voice/          VoiceController y contrato TTS; proveedor simulado
+packages/live-data/      Contratos, normalización, deduplicación y sesión LIVE
 packages/obs-controller/ Contrato y mock de OBS
 integrations/            Contratos y mocks OpenAI, deportes, Twitch, YouTube, TikTok
 assets/                  Referencias y assets fuente futuros
@@ -137,7 +138,7 @@ El HTML portátil incorpora las cinco imágenes completas en base64 y el build c
 
 Escenas: `apps/studio/public/samuia/scenes/` contiene los cinco fondos originales `escena_01.png` a `05.png` y las cinco composiciones `samuia_setup_01.png` a `05.png`. Mapeos en `packages/core/src/scenery.ts`. El modo integrado muestra personaje y habitación en un PNG con pose fija; el modo de retratos conserva las proporciones y transparencia del original. Los datos del partido y la iluminación son capas dinámicas. El HTML portátil incluye los diez originales y las cinco composiciones sin solicitudes externas.
 
-Para proveedores reales, implementa `ChatProvider`, `SportsDataProvider`, `BrainProvider`, `VoiceProvider` o `OBSController` y compónlos en el backend. Los mocks de chat tienen buzón y envío, deportes incluye ligas/partidos/estadísticas/eventos/suscripciones, OBS registra comandos sin conectarse. `MockOpenAIProvider` es una interfaz demostrativa; la aplicación usa su cerebro local.
+Para otros proveedores de fútbol, implementa `MatchDataProvider` y, si hay narración, `LiveCommentaryProvider`; el contrato común evita cambios en el cerebro y la UI. `CommunityCommentProvider` procesa los mensajes de la app. Los contratos anteriores de redes, cerebro, voz y OBS siguen disponibles. Los mocks de chat tienen buzón y envío, deportes incluye ligas/partidos/estadísticas/eventos/suscripciones, OBS registra comandos sin conectarse. `MockOpenAIProvider` es una interfaz demostrativa; la aplicación usa su cerebro local.
 
 Un futuro LLM debe validar ReactionDecision, consultar memoria y aportar referencias verificables; no basta con pedirle que «recuerde». Los datos deportivos deben proceder de feeds autorizados/licenciados, sin scraping. Credenciales solo en backend, nunca con prefijos públicos del frontend.
 
@@ -166,3 +167,7 @@ La edición v3.1 conserva el encuadre completo de los escenarios, usa la misma p
 ### Partido de prueba end-to-end
 
 Abre **Partido de prueba → Reproducir partido completo**. El guion local de 24 pasos recorre un Celta–Dépor desde el inicio hasta el final 2–1, con comentarios, comunidad, tarjetas, VAR, penalti, cambios, descanso y predicciones verificadas (una acertada y otra fallida). Puedes pausar, avanzar paso a paso, escribir mensajes y usar controles manuales. No altera los partidos del estudio ni necesita API externa. Los PNG son referencias estáticas; el panel de voz permite simular o usar una voz local instalada, pausar, reanudar y silenciar. El diagnóstico muestra todo el flujo y los errores de reproducción. Consulta [el contrato TTS desacoplado](docs/voz.md). Consulta [el recorrido y la arquitectura reutilizada](docs/partido-prueba.md).
+
+## Datos reales · LIVE
+
+El selector **Modo de datos** alterna entre SIMULATION y LIVE. Configura `.env` siguiendo [la guía de proveedores LIVE](docs/live-data.md); `.env.example` incluye las variables sin credenciales. LIVE combina datos, eventos, narración opcional y comunidad con el CommentaryEngine existente, e incorpora deduplicación, reconexión y fallback. El HTML portátil mantiene SIMULATION completo y muestra el diagnóstico de LIVE; la conexión real requiere el servidor para proteger las claves.

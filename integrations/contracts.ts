@@ -1,3 +1,8 @@
+export type {
+  MatchDataProvider,
+  LiveCommentaryProvider,
+  CommunityCommentProvider,
+} from '../packages/live-data/src/contracts';
 import type {
   ChatMessage,
   League,

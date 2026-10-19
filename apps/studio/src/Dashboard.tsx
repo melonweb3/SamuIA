@@ -120,8 +120,10 @@ export function Dashboard({ state, send }: ViewProps) {
               meta={<Badge>INTENSIDAD {context?.intensity ?? 1}/5</Badge>}
             >
               <p className="description">
-                Las opiniones, predicciones y preguntas se guardan cuando se publican. Datos y voz
-                simulados.
+                Las opiniones, predicciones y preguntas se guardan cuando se publican.{' '}
+                {state.dataMode === 'LIVE'
+                  ? 'Datos recibidos del proveedor LIVE; voz del proveedor configurado.'
+                  : 'Datos y voz simulados.'}
               </p>
               <div className="comment-tools">
                 {[
@@ -132,7 +134,9 @@ export function Dashboard({ state, send }: ViewProps) {
                 ].map(([kind, label]) => (
                   <button
                     key={kind}
-                    disabled={state.state !== 'IDLE'}
+                    disabled={
+                      state.state !== 'IDLE' || (state.dataMode === 'LIVE' && state.live?.stale)
+                    }
                     onClick={() =>
                       void send({
                         type: 'comment',

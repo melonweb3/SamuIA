@@ -41,6 +41,7 @@ export function createMatch(leagueId: string, home: Team, away: Team, matchId = 
     yellow: 0,
     red: 0,
     corners: 0,
+    fouls: 0,
   });
   return {
     id: matchId,
@@ -134,6 +135,12 @@ const heatWeights: Record<EventType, number> = {
   second_half: 0,
   goal: 20,
   chance: 8,
+  shot: 4,
+  save: 8,
+  corner: 3,
+  foul: 1,
+  dangerous_attack: 5,
+  narration: 0,
   missed_chance: 8,
   red: 15,
   penalty: 20,
@@ -282,6 +289,13 @@ export class MatchManager {
       s.shots++;
       s.xG += 0.22;
     }
+    if (type === 'shot' || type === 'save') {
+      s.shots++;
+      s.xG += 0.1;
+      if (type === 'save') s.shotsOnTarget++;
+    }
+    if (type === 'corner') s.corners++;
+    if (type === 'foul') s.fouls = (s.fouls ?? 0) + 1;
     if (type === 'yellow') s.yellow++;
     if (type === 'red') s.red++;
     if (type === 'penalty') s.xG += 0.76;

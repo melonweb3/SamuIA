@@ -116,7 +116,9 @@ export class CommentaryEngine {
     } else if (kind === 'prediction') {
       const pending = this.context.pending(match.id);
       const recent = match.events.filter(
-        (e) => e.type === 'chance' && match.minute - e.minute <= 10,
+        (e) =>
+          ['chance', 'shot', 'save', 'missed_chance'].includes(e.type) &&
+          match.minute - e.minute <= 10,
       );
       if (pending) {
         say = `Sigue pendiente lo que comenté: «${pending.content}». Vamos a ver qué pasa antes del minuto ${pending.expiresMinute}.`;
@@ -146,14 +148,27 @@ export class CommentaryEngine {
           match.minute < 10
             ? 'Primeros minutos tranquilos por ahora. No hay diferencia clara en las ocasiones registradas.'
             : 'En ocasiones registradas están bastante parejos. Aquí todavía hay partido.';
-      if (profile.responseLength === 'long')
+      if (
+        profile.responseLength === 'long' &&
+        (!match.liveData ||
+          ['home', 'away'].every((side) =>
+            ['shots', 'possession'].every((key) =>
+              match.liveData!.availableStatistics[side as Side].includes(key),
+            ),
+          ))
+      )
         say += ` Tiros ${match.statistics.home.shots}-${match.statistics.away.shots}; posesión ${match.statistics.home.possession}-${match.statistics.away.possession}.`;
-      draft.opinion = {
-        metric: 'xG',
-        team: leader,
-        homeXG: match.statistics.home.xG,
-        awayXG: match.statistics.away.xG,
-      };
+      if (
+        !match.liveData ||
+        (match.liveData.availableStatistics.home.includes('xG') &&
+          match.liveData.availableStatistics.away.includes('xG'))
+      )
+        draft.opinion = {
+          metric: 'xG',
+          team: leader,
+          homeXG: match.statistics.home.xG,
+          awayXG: match.statistics.away.xG,
+        };
     }
     if (kind === 'analysis') {
       const resolved = [
@@ -179,8 +194,69 @@ export class CommentaryEngine {
           .join(' ');
     }
     draft.decision.energy = Math.round(25 + (c.intensity * profile.emotionLevel) / 5);
+    if (match.liveData) {
+      say = say
+        .replaceAll('ocasiones simuladas', 'ocasiones registradas')
+        .replaceAll('en la simulación', 'en los datos recibidos')
+        .replaceAll('xG simulado', 'xG registrado')
+        .replaceAll('estimación simulada', 'estimación orientativa');
+      if (kind === 'analysis') {
+        const recent = [...match.liveData.incidents]
+          .reverse()
+          .find((i) => i.minute >= match.minute - 3 && i.timestamp <= Date.now());
+        if (recent) {
+          say += ` ${this.liveDescription(match, recent)}`;
+          draft.sourceIds.push(...recent.sourceIds);
+        }
+        const poll = this.context.community(match.id);
+        if (poll?.total)
+          say += ` Y el chat participa: ${poll.total} respuestas a la última pregunta.`;
+      }
+    }
     draft.decision.say = say;
     return this.style(draft, match, profile, kind === 'analysis');
+  }
+  private liveDescription(
+    match: MatchState,
+    incident: import('../../shared/src/index').LiveIncident,
+  ): string {
+    const who = incident.player || (incident.side ? match[incident.side].shortName : 'el ataque');
+    const action =
+      incident.action === 'header'
+        ? 'de cabeza'
+        : incident.action === 'cross'
+          ? 'tras el centro'
+          : 'con ese remate';
+    switch (incident.kind) {
+      case 'goal':
+        return `¡GOOOOL! ${who} encuentra el gol. ¡Cómo se pone esto!`;
+      case 'save':
+        return `¡Ufff! ${who} la ha buscado ${action}. El portero sostiene el marcador.`;
+      case 'shot':
+      case 'chance':
+      case 'missed_chance':
+        return `¡Ojo con ${who}! Lo intenta ${action}.${incident.outcome === 'missed' ? ' Se marcha fuera.' : incident.outcome === 'saved' ? ' El portero responde.' : incident.outcome === 'blocked' ? ' La defensa bloquea el intento.' : incident.outcome === 'post' ? ' ¡Al palo!' : ''}`;
+      case 'yellow':
+        return `Amarilla para ${who}. Ahora toca medir cada entrada.`;
+      case 'red':
+        return `¡Roja para ${who}! Esto cambia el partido.`;
+      case 'substitution':
+        return `Movimiento en el banquillo: ${who}${incident.playerOut ? ` por ${incident.playerOut}` : ''}. A ver qué aporta el cambio.`;
+      case 'corner':
+        return `Córner para ${incident.side ? match[incident.side].shortName : 'el equipo que ataca'}. Ojo a la estrategia.`;
+      case 'foul':
+        return `Falta señalada${incident.player ? ` en la acción de ${incident.player}` : ''}. Se detiene el juego.`;
+      case 'dangerous_attack':
+        return `¡Atención a ${who}! Este ataque lleva peligro.`;
+      case 'var':
+        return 'La jugada pasa por el VAR. Esperamos la decisión oficial antes de sacar conclusiones.';
+      case 'penalty':
+        return `¡Penalti${incident.side ? ` para ${match[incident.side].shortName}` : ''}! Momento de máxima tensión.`;
+      case 'narration':
+        return 'El juego continúa. Seguimos atentos a la próxima acción confirmada.';
+      default:
+        return '';
+    }
   }
   event(
     match: MatchState,
@@ -213,6 +289,19 @@ export class CommentaryEngine {
       say = `Se está calentando el ${match.home.shortName} - ${match.away.shortName}: ${groupedCount} avisos menores seguidos. Cabeza fría.`;
     else
       switch (event.type) {
+        case 'shot':
+        case 'save':
+        case 'corner':
+        case 'foul':
+        case 'dangerous_attack':
+        case 'narration':
+          say = event.live
+            ? this.liveDescription(match, event.live)
+            : `${name}: ${event.type === 'save' ? 'el portero interviene' : 'seguimos la jugada'}.`;
+          draft.decision.emotion = ['save', 'shot', 'dangerous_attack'].includes(event.type)
+            ? 'sorpresa'
+            : 'pensativo';
+          break;
         case 'kickoff':
           say = `¡Arranca el partido! ${match.home.shortName} contra ${match.away.shortName}. Vamos a vivirlo juntos y a leer al chat.`;
           draft.decision.emotion = 'sonrisa';
@@ -280,6 +369,18 @@ export class CommentaryEngine {
           say = `¡Final! ${scoreline(match)}. Se acabó lo que se daba. Gracias por vivirlo juntos.`;
           break;
       }
+    if (event.live) {
+      const fact = this.liveDescription(match, event.live);
+      if (fact) say = fact + (event.type === 'goal' ? ` ${scoreline(match)}.` : '');
+      draft.sourceIds = [...event.live.sourceIds];
+      const statSide = event.live.side;
+      if (
+        statSide &&
+        match.liveData?.availableStatistics[statSide].includes('shotsOnTarget') &&
+        ['shot', 'save', 'chance', 'goal'].includes(event.type)
+      )
+        say += ` ${name} lleva ${match.statistics[statSide].shotsOnTarget} tiros a puerta registrados.`;
+    }
     if (success) {
       say += ` Os lo dije: había dejado publicada esa posibilidad y ha llegado el gol. Era una estimación, no una garantía.`;
       draft.recallIds.push(success.id);
@@ -309,7 +410,7 @@ export class CommentaryEngine {
             ? 'penalty'
             : event.type === 'missed_chance'
               ? 'frustrated'
-              : ['chance', 'red'].includes(event.type)
+              : ['chance', 'red', 'shot', 'save', 'dangerous_attack'].includes(event.type)
                 ? 'shock'
                 : event.type === 'yellow'
                   ? 'angry'

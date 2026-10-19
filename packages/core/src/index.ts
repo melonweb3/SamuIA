@@ -1,3 +1,4 @@
+import { AppCommunityCommentProvider } from '../../live-data/src/contracts';
 import { VoiceController, type VoiceProvider } from '../../voice/src/index';
 import { AvatarAnimationController } from '../../avatar-animation/src/index';
 import {
@@ -17,8 +18,12 @@ import {
   type SportsAlert,
   type VisemeCue,
   type MatchState,
+  type LiveMatchRecord,
+  type LiveIncident,
+  type DataMode,
+  type MatchEvent,
 } from '../../shared/src/index';
-import { MatchManager } from '../../football-engine/src/index';
+import { createMatch, MatchManager } from '../../football-engine/src/index';
 import { ChatQueue } from '../../chat-engine/src/index';
 import {
   LiveMatchContextService,
@@ -29,12 +34,15 @@ import { SportsReactionScheduler } from './scheduler';
 import { CameraDirector, SceneManager, MockVoiceProvider } from './visual';
 export { SportsReactionScheduler, CameraDirector, SceneManager, AvatarAnimationController };
 export class ReactionDirector {
+  dataMode: DataMode = 'SIMULATION';
+  dataFresh = true;
   animation: AvatarAnimationController;
   manager = new MatchManager();
   context = new LiveMatchContextService();
   commentary = new CommentaryEngine(this.context);
   brain = new SamuIABrain(this.commentary);
   chat = new ChatQueue();
+  community = new AppCommunityCommentProvider();
   scheduler = new SportsReactionScheduler();
   camera = new CameraDirector();
   scenes = new SceneManager();
@@ -132,6 +140,8 @@ export class ReactionDirector {
   }
   command(cmd: StudioCommand, now = Date.now()) {
     switch (cmd.type) {
+      case 'data-mode':
+        throw new Error('El modo de datos se cambia en el coordinador de la sesión');
       case 'avatar-gaze':
         this.animation.lookAt(cmd.target);
         return;
@@ -184,10 +194,21 @@ export class ReactionDirector {
         break;
       }
       case 'chat': {
+        const input = this.community.process(
+          {
+            id: cmd.clientId ?? id(),
+            username: cmd.username,
+            message: cmd.message,
+            matchId: cmd.matchId ?? this.manager.currentMatchId ?? 'studio',
+            timestamp: now,
+          },
+          now,
+        );
+        if (!input) break;
         if (cmd.matchId) this.manager.get(cmd.matchId);
         const message = this.chat.add(
-          cmd.username,
-          cmd.message,
+          input.username,
+          input.message,
           this.manager.followed(),
           now,
           cmd.matchId ?? this.manager.currentMatchId ?? undefined,
@@ -383,6 +404,7 @@ export class ReactionDirector {
     if (
       match &&
       this.settings.autoReactions &&
+      this.dataFresh &&
       this.profile.commentaryFrequency > 0 &&
       this.scheduler.recentReactions.length < this.settings.maxReactionsPerMinute
     ) {
@@ -390,7 +412,9 @@ export class ReactionDirector {
         interval = 120000 - this.profile.commentaryFrequency * 1000;
       if (now - c.lastCommentAt >= interval) {
         const recent = match.events.filter(
-          (e) => e.type === 'chance' && match.minute - e.minute <= 10,
+          (e) =>
+            ['chance', 'shot', 'save', 'missed_chance'].includes(e.type) &&
+            match.minute - e.minute <= 10,
         );
         const choice = (c.publishedCount * 31 + 7) % 100;
         const kind =
@@ -449,6 +473,98 @@ export class ReactionDirector {
     this.tick(now);
     return true;
   }
+  applyLiveMatch(record: LiveMatchRecord, now: number) {
+    let match = this.manager.activeMatches.find((m) => m.id === record.id);
+    if (!match) {
+      match = createMatch(record.league.id, record.home, record.away, record.id);
+      for (const type of Object.keys(match.subscription.reactions.events))
+        match.subscription.reactions.events[type as MatchEvent['type']] = true;
+      this.manager.activeMatches.push(match);
+      if (!this.manager.currentMatchId)
+        this.manager.currentMatchId = this.manager.mainMatchId = match.id;
+      this.context.get(match.id).lastCommentAt = now;
+    }
+    if (match.liveData && record.updatedAt < match.liveData.updatedAt) return false;
+    if (!this.manager.leagues.some((l) => l.id === record.league.id))
+      this.manager.leagues.push({ ...record.league, enabled: true, importance: 5 });
+    match.home = record.home;
+    match.away = record.away;
+    match.minute = record.minute;
+    match.score = { ...record.score };
+    match.status = record.status;
+    for (const side of ['home', 'away'] as const)
+      match.statistics[side] = { ...match.statistics[side], ...record.statistics[side] };
+    match.liveData = {
+      provider: record.incidents[0]?.provider ?? 'LIVE',
+      updatedAt: record.updatedAt,
+      receivedAt: now,
+      availableStatistics: {
+        home: Object.keys(record.statistics.home),
+        away: Object.keys(record.statistics.away),
+      },
+      lineups: record.lineups,
+      incidents: match.liveData?.incidents ?? [],
+    };
+    return true;
+  }
+  receiveLiveIncident(incident: LiveIncident, announce: boolean, now: number) {
+    const match = this.manager.get(incident.matchId);
+    match.liveData!.incidents.push(incident);
+    match.liveData!.incidents = match.liveData!.incidents.slice(-300);
+    const event: MatchEvent = {
+      id: `${incident.provider}:${incident.matchId}:${incident.channel}:${incident.id}`,
+      matchId: match.id,
+      type: incident.kind,
+      side: incident.side ?? 'home',
+      minute: incident.minute,
+      timestamp:
+        incident.timestampQuality === 'estimated' ? incident.receivedAt : incident.timestamp,
+      relatedPlayer: incident.player,
+      live: incident,
+    };
+    match.events.push(event);
+    match.events = match.events.slice(-300);
+    this.context.observe(match, event);
+    if (!incident.side) {
+      const moment = this.context.get(match.id).personalityMemory.memorableMoments.at(-1)!;
+      moment.relatedTeam = null;
+      moment.content = `${incident.kind}: partido (${match.score.home}-${match.score.away})`;
+    }
+    this.manager.refresh(now);
+    if (announce) this.queueLiveIncident(incident);
+  }
+  queueLiveIncident(incident: LiveIncident) {
+    const match = this.manager.get(incident.matchId);
+    const event = match.events.find((e) => e.live === incident);
+    if (!event || this.alerts.some((a) => a.id === event.id)) return;
+    event.type = incident.kind;
+    event.relatedPlayer = incident.player;
+    const moment = this.context
+      .get(match.id)
+      .personalityMemory.memorableMoments.find((m) => m.id === event.id);
+    if (moment) {
+      moment.content = `${incident.kind}: ${incident.side ? match[incident.side].shortName : 'partido'} (${match.score.home}-${match.score.away})`;
+      moment.relatedPlayer = incident.player ?? null;
+      moment.sourceIds = [...new Set([event.id, ...incident.sourceIds])];
+    }
+    if (this.manager.leagues.some((l) => l.id === match.leagueId && l.enabled)) {
+      // Use receipt time for queue expiry; occurrence time remains intact in the event and memory.
+      const queued = this.scheduler.enqueue(
+        event,
+        match,
+        this.manager.leagues.find((l) => l.id === match.leagueId)?.importance ?? 5,
+        this.settings,
+      );
+      this.alerts.unshift({
+        id: event.id,
+        event,
+        label: `${eventLabels[event.type].toUpperCase()} · ${match.home.shortName} – ${match.away.shortName}`,
+        secondary: match.id !== this.manager.mainMatchId,
+        disposition: queued ? 'queued' : 'alert-only',
+      });
+      this.alerts = this.alerts.slice(0, 60);
+    }
+  }
   setVoiceProvider(provider: VoiceProvider, now = Date.now()) {
     const speech = this.animation.frame(now).speech;
     if (speech) this.voiceEnded(speech.id, now);
@@ -496,6 +612,7 @@ export class ReactionDirector {
     const animation = this.animation.frame(now);
     return structuredClone({
       mode: 'DEMO',
+      dataMode: this.dataMode,
       voice: this.playback.snapshot(),
       state: this.state,
       decision: this.decision,

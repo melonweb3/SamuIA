@@ -28,7 +28,7 @@ export function ChatPanel({ state, send, full = false }: ViewProps & { full?: bo
         <button className={history ? 'selected' : ''} onClick={() => setHistory(true)}>
           Historial
         </button>
-        <span>SIMULADOR LOCAL</span>
+        <span>{state.dataMode === 'LIVE' ? 'COMUNIDAD DE LA APP' : 'SIMULADOR LOCAL'}</span>
       </div>
       <div className={`chat-list ${full ? 'full' : ''}`}>
         {messages.slice(0, full ? 100 : 8).map((m) => (
@@ -106,7 +106,11 @@ export function ChatPanel({ state, send, full = false }: ViewProps & { full?: bo
           rows={2}
         />
         <div>
-          <small>↳ Solo tú ves esta simulación</small>
+          <small>
+            {state.dataMode === 'LIVE'
+              ? '↳ Comunidad de esta sesión del estudio'
+              : '↳ Solo tú ves esta simulación'}
+          </small>
           <button className="primary" disabled={sending || !message.trim() || !username.trim()}>
             Añadir a la cola ↗
           </button>

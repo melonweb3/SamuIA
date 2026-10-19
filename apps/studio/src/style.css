@@ -2595,3 +2595,16 @@ footer {
 .broadcast-pipeline li + li {
   margin-top: 6px;
 }
+
+.live-status-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-bottom: 12px;
+}
+.live-status details {
+  overflow-wrap: anywhere;
+}
+.live-status li {
+  margin-top: 6px;
+}

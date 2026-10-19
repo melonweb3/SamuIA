@@ -1,3 +1,5 @@
+import { LiveDataSession } from '../../../packages/live-data/src/index';
+import { LiveStatus } from './LiveStatus';
 import { useEffect, useState } from 'react';
 import { MatchSimulationSession } from '../../../packages/match-simulation/src/index';
 import { MatchSimulation } from './MatchSimulation';
@@ -26,6 +28,8 @@ const pages = [
 type Page = (typeof pages)[number];
 const icons = ['◫', '⚑', '◎', '☷', '◈', '⌘', '▷', '⚽', '⚙'];
 export function App({ session }: { session?: ReactionDirector }) {
+  const [portableMode, setPortableMode] = useState<'SIMULATION' | 'LIVE'>('SIMULATION');
+  const [portableLive] = useState(() => (session ? new LiveDataSession(null) : null));
   const [matchSimulation, setMatchSimulation] = useState(() => new MatchSimulationSession());
   const [page, setPage] = useState<Page>(
       location.hash === '#partido-prueba' ? 'Partido de prueba' : 'Dashboard',
@@ -37,7 +41,11 @@ export function App({ session }: { session?: ReactionDirector }) {
     if (session) {
       const update = () => {
         session.tick();
-        setState(session.snapshot());
+        if (portableMode === 'LIVE' && portableLive) {
+          portableLive.diagnostics.message =
+            'LIVE necesita el servidor configurado. El HTML portátil mantiene SIMULATION sin conexión; no guarda ni solicita claves privadas.';
+          setState(portableLive.snapshot());
+        } else setState(session.snapshot());
         setConnected(true);
       };
       update();
@@ -51,7 +59,7 @@ export function App({ session }: { session?: ReactionDirector }) {
     };
     stream.onerror = () => setConnected(false);
     return () => stream.close();
-  }, [session]);
+  }, [session, portableMode, portableLive]);
   useEffect(() => {
     if (error) {
       const t = setTimeout(() => setError(''), 7000);
@@ -86,6 +94,15 @@ export function App({ session }: { session?: ReactionDirector }) {
     );
     try {
       if (session) {
+        if (command.type === 'data-mode') {
+          session.command({ type: 'control', action: 'silence' });
+          setPortableMode(command.mode);
+          return true;
+        }
+        if (portableMode === 'LIVE')
+          throw new Error(
+            'LIVE necesita el servidor configurado; cambia a SIMULATION para probar sin conexión',
+          );
         session.command(command);
         setState(session.snapshot());
         return true;
@@ -159,7 +176,7 @@ export function App({ session }: { session?: ReactionDirector }) {
           <i className={connected ? 'dot' : 'dot offline'} />
           <span>
             {connected ? 'Sistema local conectado' : 'Conectando al servidor'}
-            <small>Sin APIs externas · Retransmisión MVP v5</small>
+            <small>{state?.dataMode ?? 'SIMULATION'} · LIVE Providers v6</small>
           </span>
         </div>
       </aside>
@@ -169,8 +186,19 @@ export function App({ session }: { session?: ReactionDirector }) {
             Workspace / <b>{page}</b>
           </span>
           <div>
+            <select
+              aria-label="Modo de datos"
+              value={state?.dataMode ?? 'SIMULATION'}
+              disabled={!state}
+              onChange={(e) =>
+                void send({ type: 'data-mode', mode: e.target.value as 'SIMULATION' | 'LIVE' })
+              }
+            >
+              <option value="SIMULATION">SIMULATION</option>
+              <option value="LIVE">LIVE</option>
+            </select>
             <span className="local-chip">
-              ⌁ {session ? 'Demo portátil' : 'Entorno local'} · Retransmisión MVP v5
+              ⌁ {session ? 'Demo portátil' : 'Entorno local'} · LIVE Providers v6
             </span>
             <span className="profile-icon">S</span>
             <span>
@@ -184,7 +212,9 @@ export function App({ session }: { session?: ReactionDirector }) {
               <div className="eyebrow">TU CENTRO DE CONTROL</div>
               <h1>
                 {page === 'Dashboard' ? 'SamuIA Live Studio' : page}
-                <span className="demo-badge">● {connected ? 'DEMO' : 'OFFLINE'}</span>
+                <span className="demo-badge">
+                  ● {connected ? (state?.dataMode ?? 'SIMULATION') : 'OFFLINE'}
+                </span>
               </h1>
               <p>
                 {page === 'Dashboard'
@@ -196,7 +226,9 @@ export function App({ session }: { session?: ReactionDirector }) {
             </div>
             <span className="state-badge">
               <i className="dot" />
-              {page === 'Partido de prueba' ? 'SIMULATION' : (state?.state ?? 'CONECTANDO')}
+              {page === 'Partido de prueba' && state?.dataMode !== 'LIVE'
+                ? 'SIMULATION'
+                : (state?.state ?? 'CONECTANDO')}
               <small>
                 {page === 'Partido de prueba' ? 'Prueba de retransmisión' : 'Voz simulada'}
               </small>
@@ -219,6 +251,7 @@ export function App({ session }: { session?: ReactionDirector }) {
           )}
           {state && (
             <>
+              {state.dataMode === 'LIVE' && <LiveStatus state={state} />}
               {page === 'Dashboard' && <Dashboard state={state} send={send} />}{' '}
               {page === 'Centro de Partidos' && <MatchCenter state={state} send={send} />}{' '}
               {page === 'Radar SamuIA' && (
@@ -231,14 +264,30 @@ export function App({ session }: { session?: ReactionDirector }) {
               {page === 'Memoria' && <MemoryPanel state={state} send={send} />}{' '}
               {page === 'Ajustes' && <Settings state={state} send={send} />}{' '}
               {page === 'Integraciones' && <Integrations />}
-              {page === 'SIMULATION' && <AvatarSimulation state={state} send={send} />}
-              {page === 'Partido de prueba' && (
+              {page === 'SIMULATION' && state.dataMode !== 'LIVE' && (
+                <AvatarSimulation state={state} send={send} />
+              )}
+              {['SIMULATION', 'Partido de prueba'].includes(page) && state.dataMode === 'LIVE' && (
+                <div className="info-banner">
+                  <p>
+                    Los controles de prueba están en SIMULATION. LIVE conserva los datos recibidos
+                    del proveedor.
+                  </p>
+                  <button onClick={() => void send({ type: 'data-mode', mode: 'SIMULATION' })}>
+                    Volver a SIMULATION
+                  </button>
+                </div>
+              )}
+              {page === 'Partido de prueba' && state.dataMode !== 'LIVE' && (
                 <MatchSimulation session={matchSimulation} onSessionChange={setMatchSimulation} />
               )}
               <footer>
                 <span>{DISCLAIMER}</span>
                 <span>● SAMUIA LIVE STUDIO / DEMO LOCAL</span>
-                <span>Datos simulados · Sin emisión a plataformas</span>
+                <span>
+                  {state.dataMode === 'LIVE' ? 'Datos del proveedor LIVE' : 'Datos simulados'} · Sin
+                  emisión a plataformas
+                </span>
               </footer>
             </>
           )}

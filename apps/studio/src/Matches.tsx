@@ -9,6 +9,7 @@ import { Panel, Empty, Badge, matchTitle, statusLabels, type ViewProps, type Sen
 export function EventSimulator({ match, send }: { match: MatchState; send: Send }) {
   const [side, setSide] = useState<'home' | 'away'>('home');
   const disabled = match.status !== 'live';
+  if (match.liveData) return null;
   return (
     <div className="simulator">
       <div className="eyebrow">SIMULADOR DE EVENTOS</div>
@@ -87,6 +88,26 @@ export function MatchDetail({ match: m, state, send }: { match: MatchState } & V
     ['Rojas', m.statistics.home.red, m.statistics.away.red],
     ['Córners', m.statistics.home.corners, m.statistics.away.corners],
   ];
+  if (m.liveData) {
+    const keys = [
+      'possession',
+      'shots',
+      'shotsOnTarget',
+      'xG',
+      'yellow',
+      'red',
+      'corners',
+      'fouls',
+    ];
+    rows.push(['Faltas', m.statistics.home.fouls ?? '—', m.statistics.away.fouls ?? '—']);
+    rows.forEach((row, i) => {
+      for (const [side, index] of [
+        ['home', 1],
+        ['away', 2],
+      ] as const)
+        if (!m.liveData!.availableStatistics[side].includes(keys[i])) row[index] = '—';
+    });
+  }
   return (
     <div className="match-detail">
       <div className="competition">
@@ -140,6 +161,38 @@ export function MatchDetail({ match: m, state, send }: { match: MatchState } & V
         </div>
         <p className="disclaimer">{DISCLAIMER}</p>
       </div>
+      {m.liveData && (
+        <details className="event-filters">
+          <summary>Datos LIVE · narración y alineaciones</summary>
+          <p>
+            Recibido: {new Date(m.liveData.receivedAt).toLocaleTimeString()} · Fuente:{' '}
+            {m.liveData.provider}. «—» significa dato no disponible.
+          </p>
+          {m.liveData.lineups && (
+            <div>
+              {(['home', 'away'] as const).map((side) => (
+                <p key={side}>
+                  {m[side].shortName}:{' '}
+                  {m.liveData!.lineups![side].map((p) => p.name).join(', ') ||
+                    'Alineación no disponible'}
+                </p>
+              ))}
+            </div>
+          )}
+          <ul>
+            {m.liveData.incidents
+              .slice(-15)
+              .reverse()
+              .map((i) => (
+                <li key={`${i.provider}-${i.channel}-${i.id}`}>
+                  {i.minute}′ · {eventLabels[i.kind]}
+                  {i.player ? ` · ${i.player}` : ''}
+                  {i.text ? ` · Referencia API: «${i.text}»` : ''}
+                </li>
+              ))}
+          </ul>
+        </details>
+      )}
       <EventSimulator match={m} send={send} />
     </div>
   );
@@ -348,6 +401,7 @@ export function MatchCenter({ state, send }: ViewProps) {
                 Ver en estudio ↗
               </button>
               <button
+                disabled={state.dataMode === 'LIVE'}
                 className="danger"
                 onClick={() => void send({ type: 'match-remove', matchId: m.id })}
               >
@@ -360,64 +414,66 @@ export function MatchCenter({ state, send }: ViewProps) {
       {!matches.length && <Empty>No hay partidos con estos filtros.</Empty>}
       <Panel title="Añadir partido simulado" meta={<Badge>DATOS MOCK</Badge>}>
         <form className="add-match" onSubmit={(e) => void add(e)}>
-          <label>
-            Local
-            <input
-              value={home}
-              onChange={(e) => setHome(e.target.value)}
-              placeholder="Deportivo de La Coruña"
-              required
-              maxLength={80}
-            />
-          </label>
-          <label>
-            Visitante
-            <input
-              value={away}
-              onChange={(e) => setAway(e.target.value)}
-              placeholder="Racing"
-              required
-              maxLength={80}
-            />
-          </label>
-          <label>
-            Competición
-            <select
-              aria-label="Competición"
-              value={addLeague}
-              onChange={(e) => setAddLeague(e.target.value)}
-            >
-              {state.leagues.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Estado
-            <select
-              aria-label="Estado"
-              value={status}
-              onChange={(e) => setStatus(e.target.value as 'live' | 'upcoming')}
-            >
-              <option value="live">En directo</option>
-              <option value="upcoming">Próximo</option>
-            </select>
-          </label>
-          <label>
-            Contexto
-            <select
-              aria-label="Contexto"
-              value={kind}
-              onChange={(e) => setKind(e.target.value as MatchState['contextType'])}
-            >
-              <option value="regular">Regular</option>
-              <option value="derby">Derbi</option>
-              <option value="final">Final</option>
-            </select>
-          </label>
-          <button className="primary">Añadir partido +</button>
+          <fieldset disabled={state.dataMode === 'LIVE'}>
+            <label>
+              Local
+              <input
+                value={home}
+                onChange={(e) => setHome(e.target.value)}
+                placeholder="Deportivo de La Coruña"
+                required
+                maxLength={80}
+              />
+            </label>
+            <label>
+              Visitante
+              <input
+                value={away}
+                onChange={(e) => setAway(e.target.value)}
+                placeholder="Racing"
+                required
+                maxLength={80}
+              />
+            </label>
+            <label>
+              Competición
+              <select
+                aria-label="Competición"
+                value={addLeague}
+                onChange={(e) => setAddLeague(e.target.value)}
+              >
+                {state.leagues.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Estado
+              <select
+                aria-label="Estado"
+                value={status}
+                onChange={(e) => setStatus(e.target.value as 'live' | 'upcoming')}
+              >
+                <option value="live">En directo</option>
+                <option value="upcoming">Próximo</option>
+              </select>
+            </label>
+            <label>
+              Contexto
+              <select
+                aria-label="Contexto"
+                value={kind}
+                onChange={(e) => setKind(e.target.value as MatchState['contextType'])}
+              >
+                <option value="regular">Regular</option>
+                <option value="derby">Derbi</option>
+                <option value="final">Final</option>
+              </select>
+            </label>
+            <button className="primary">Añadir partido +</button>
+          </fieldset>
         </form>
       </Panel>
     </>

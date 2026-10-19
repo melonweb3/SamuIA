@@ -13,6 +13,12 @@ const weights = {
   red: 90,
   var: 80,
   chance: 60,
+  shot: 45,
+  save: 60,
+  corner: 25,
+  foul: 10,
+  dangerous_attack: 45,
+  narration: 25,
   missed_chance: 60,
   fulltime: 60,
   halftime: 30,
@@ -40,13 +46,18 @@ export class SportsReactionScheduler {
       importance +
       (favorite ? 5 : 0) +
       (settings.favoriteLeagues.includes(match.leagueId) ? 3 : 0) -
-      (match.lastReaction && event.timestamp - match.lastReaction.at < 10000 ? 15 : 0);
+      (match.lastReaction &&
+      (event.live?.receivedAt ?? event.timestamp) - match.lastReaction.at < 10000
+        ? 15
+        : 0);
     const group = this.sportsEventQueue.find(
       (i) =>
         i.event.matchId === match.id &&
         weights[i.event.type] <= 20 &&
         weights[event.type] <= 20 &&
-        event.timestamp - i.event.timestamp < 15000,
+        (event.live?.receivedAt ?? event.timestamp) -
+          (i.event.live?.receivedAt ?? i.event.timestamp) <
+          15000,
     );
     if (group) {
       group.groupedCount++;
@@ -75,7 +86,8 @@ export class SportsReactionScheduler {
         !m.subscription.reactions.paused &&
         m.subscription.reactions.events[i.event.type] &&
         manager.leagues.some((l) => l.id === m.leagueId && l.enabled) &&
-        now - i.event.timestamp < (weights[i.event.type] <= 20 ? 20000 : 180000)
+        now - (i.event.live?.receivedAt ?? i.event.timestamp) <
+          (weights[i.event.type] <= 20 ? 20000 : 180000)
       );
     });
     if (
@@ -85,7 +97,8 @@ export class SportsReactionScheduler {
     )
       return;
     const index = this.sportsEventQueue.findIndex(
-      (i) => weights[i.event.type] > 20 || now - i.event.timestamp >= 3000,
+      (i) =>
+        weights[i.event.type] > 20 || now - (i.event.live?.receivedAt ?? i.event.timestamp) >= 3000,
     );
     if (index < 0) return;
     const [item] = this.sportsEventQueue.splice(index, 1);

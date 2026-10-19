@@ -1,3 +1,5 @@
+import type { DataMode, LiveDiagnostics, LiveIncident, LiveMatchRecord } from './live';
+export * from './live';
 import type { VoiceSnapshot } from '../../voice/src/index';
 import type { AvatarDirective, AvatarAnimationFrame, AvatarAnimation, GazeTarget } from './avatar';
 export * from './avatar';
@@ -45,6 +47,12 @@ export const eventTypes = [
   'second_half',
   'goal',
   'chance',
+  'shot',
+  'save',
+  'corner',
+  'foul',
+  'dangerous_attack',
+  'narration',
   'missed_chance',
   'yellow',
   'red',
@@ -62,6 +70,12 @@ export const eventLabels: Record<EventType, string> = {
   second_half: 'Segunda parte',
   goal: 'Gol',
   chance: 'Ocasión clara',
+  shot: 'Tiro',
+  save: 'Parada',
+  corner: 'Córner',
+  foul: 'Falta',
+  dangerous_attack: 'Ataque peligroso',
+  narration: 'Narración',
   missed_chance: 'Ocasión fallada',
   yellow: 'Amarilla',
   red: 'Roja',
@@ -84,6 +98,7 @@ export interface Team {
   aliases: string[];
 }
 export interface TeamStatistics {
+  fouls?: number;
   possession: number;
   shots: number;
   shotsOnTarget: number;
@@ -93,6 +108,7 @@ export interface TeamStatistics {
   corners: number;
 }
 export interface MatchEvent {
+  live?: LiveIncident;
   id: string;
   matchId: string;
   type: EventType;
@@ -166,6 +182,14 @@ export interface LiveMatchContext {
   lastCommentAt: number;
 }
 export interface MatchState {
+  liveData?: {
+    provider: string;
+    updatedAt: number;
+    receivedAt: number;
+    availableStatistics: Record<Side, string[]>;
+    lineups?: LiveMatchRecord['lineups'];
+    incidents: LiveIncident[];
+  };
   id: string;
   leagueId: string;
   home: Team;
@@ -267,6 +291,8 @@ export interface CommentaryDraft {
   sourceIds: string[];
 }
 export interface StudioSnapshot {
+  dataMode: DataMode;
+  live?: LiveDiagnostics;
   voice: VoiceSnapshot;
   mode: 'DEMO';
   state: DirectorState;
@@ -300,6 +326,7 @@ export interface StudioSnapshot {
   now: number;
 }
 export type StudioCommand =
+  | { type: 'data-mode'; mode: DataMode }
   | {
       type: 'avatar-simulate';
       animation: AvatarAnimation;
@@ -309,7 +336,7 @@ export type StudioCommand =
     }
   | { type: 'avatar-gaze'; target: GazeTarget }
   | { type: 'event'; matchId: string; eventType: EventType; side: Side }
-  | { type: 'chat'; username: string; message: string; matchId?: string }
+  | { type: 'chat'; username: string; message: string; matchId?: string; clientId?: string }
   | { type: 'respond' | 'skip' | 'mute'; id: string }
   | { type: 'control'; action: 'silence' | 'angry' | 'celebrate' | 'normal' }
   | { type: 'main'; matchId: string | null }

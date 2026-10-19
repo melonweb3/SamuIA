@@ -11,7 +11,11 @@ export function Radar({ state, send }: ViewProps) {
     .sort((a, b) => b.excitementScore - a.excitementScore);
   return (
     <Panel title="Radar SamuIA" meta={<Badge>EN DIRECTO</Badge>}>
-      <p className="description">El pulso de tus partidos, en tiempo real simulado.</p>
+      <p className="description">
+        {state.dataMode === 'LIVE'
+          ? 'El pulso de tus partidos según los datos recibidos.'
+          : 'El pulso de tus partidos, en tiempo real simulado.'}
+      </p>
       <div className="radar-list">
         {matches.map((m, i) => (
           <button

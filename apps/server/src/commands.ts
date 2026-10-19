@@ -67,6 +67,7 @@ const profile = z
   .partial()
   .strict();
 export const commandSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('data-mode'), mode: z.enum(['SIMULATION', 'LIVE']) }).strict(),
   z
     .object({
       type: z.literal('avatar-simulate'),
@@ -91,6 +92,7 @@ export const commandSchema = z.discriminatedUnion('type', [
       username: z.string().trim().min(1).max(40),
       message: z.string().trim().min(1).max(500),
       matchId: id.optional(),
+      clientId: id.optional(),
     })
     .strict(),
   ...(['respond', 'skip', 'mute'] as const).map((type) =>
