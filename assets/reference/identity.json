@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "identityId": "samuia-main-v1",
   "characterName": "SamuIA",
   "role": "main-commentator",
@@ -66,7 +66,7 @@
   "allowedVariations": ["expression", "gaze", "gesture", "framing", "lighting", "background"],
   "notEstablished": ["full-body-proportions", "height", "trousers", "footwear"],
   "runtime": {
-    "currentAvatar": "official-originals",
+    "currentAvatar": "integrated-composite-default-original-portraits-optional",
     "placeholderIsOfficialIdentity": false,
     "referenceIntegrated": true,
     "approvedOriginalFiles": [
@@ -76,7 +76,13 @@
       "apps/studio/public/samuia/avatar/avatar_cara_04.png",
       "apps/studio/public/samuia/avatar/avatar_cara_05.png"
     ],
-    "approvedDerivedFiles": [],
+    "approvedDerivedFiles": [
+      "apps/studio/public/samuia/scenes/samuia_setup_01.png",
+      "apps/studio/public/samuia/scenes/samuia_setup_02.png",
+      "apps/studio/public/samuia/scenes/samuia_setup_03.png",
+      "apps/studio/public/samuia/scenes/samuia_setup_04.png",
+      "apps/studio/public/samuia/scenes/samuia_setup_05.png"
+    ],
     "automaticMapping": {
       "neutral": "avatar-03",
       "smile": "avatar-01",
@@ -85,6 +91,9 @@
       "serious": "avatar-05"
     },
     "missingExpressions": "Se reutiliza una referencia original; no se sintetizan sorpresa, risa ni enfado.",
-    "portableEmbedding": "PNG completos codificados en base64; al decodificar se conservan los bytes originales."
+    "portableEmbedding": "PNG completos codificados en base64; al decodificar se conservan los bytes originales.",
+    "compositeManifest": "assets/runtime/scenes/composites-index.json",
+    "compositeAuthorization": "Petición expresa del usuario del 19 de octubre de 2026: integrar avatar y escenario en una sola imagen sin fondo blanco. Originales intactos.",
+    "compositePose": "Pose neutra fija por escenario, sin animación facial; originales disponibles en modo de capas."
   }
 }

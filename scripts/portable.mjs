@@ -35,17 +35,18 @@ html = html
 for (const [manifest, elementId] of [
   ['assets/reference/originals-index.json', 'samuia-avatar-originals'],
   ['assets/reference/scenes/originals-index.json', 'samuia-scene-originals'],
+  ['assets/runtime/scenes/composites-index.json', 'samuia-scene-composites'],
 ]) {
   const originals = JSON.parse(await readFile(resolve(manifest), 'utf8'));
   const embedded = {};
   for (const original of originals) {
     const reference = await readFile(resolve(original.originalFile));
     const runtime = await readFile(resolve(original.runtimeFile));
-    const archive = await readFile(resolve(original.archiveFile));
+    const archive = original.archiveFile ? await readFile(resolve(original.archiveFile)) : null;
     if (
       !reference.equals(runtime) ||
       createHash('sha256').update(runtime).digest('hex') !== original.sha256 ||
-      createHash('sha256').update(archive).digest('hex') !== original.archiveSha256
+      (archive && createHash('sha256').update(archive).digest('hex') !== original.archiveSha256)
     ) {
       throw new Error(`La referencia no coincide con el original: ${original.runtimeFile}`);
     }

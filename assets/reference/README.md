@@ -16,7 +16,7 @@ Se han recibido los cinco ZIP originales del usuario. Se conservan exactamente s
 | 04         | [avatar_cara_04.png](originals/avatar_cara_04.png) | Habla, boca abierta            |
 | 05         | [avatar_cara_05.png](originals/avatar_cara_05.png) | Serio                          |
 
-La aplicación muestra estos retratos originales en lugar del SVG provisional. El modo automático selecciona una referencia según emoción/gesto y si está hablando; Ajustes permite fijar cualquiera de las cinco. Para sorpresa, risa o enfado sin fotografía propia se usa una de estas referencias del mismo personaje, indicando la vista real. No se han creado expresiones ni personajes nuevos.
+El modo opcional de retratos muestra estos originales en lugar del SVG provisional. En ese modo, la selección automática escoge una referencia según emoción/gesto y si está hablando; Ajustes permite fijar cualquiera de las cinco. Para sorpresa, risa o enfado sin fotografía propia se usa una de estas referencias del mismo personaje, indicando la vista real. No se han creado expresiones ni personajes nuevos.
 
 El HTML portátil incluye los cinco PNG completos en base64; decodificarlos recupera exactamente los mismos bytes. No necesita descargar imágenes ni depende de una ruta local. Los cambios de cámara son transformaciones visuales de la capa con proporciones conservadas, no ediciones de las imágenes. Si fallan las imágenes, se muestra un aviso; nunca vuelve a aparecer otro personaje de sustitución.
 
@@ -54,3 +54,7 @@ Los originales de referencia pertenecen a `assets/reference/`. Los derivados se 
 Antes de integrar cada derivado, compararlo con la lámina original. El SVG genérico del MVP ha sido retirado del componente del avatar. No alterar silenciosamente la identidad desde un selector de emoción o cámara.
 
 Los cinco escenarios originales se documentan en [scenes/README.md](scenes/README.md). El setup principal usa la referencia 05 con las copias exactas de `scenes/originals-index.json`; la selección de fondos y luz se define en `packages/core/src/scenery.ts`. Los gráficos del encuentro son capas independientes. No alterar el avatar al cambiar el escenario.
+
+## Integración autorizada posterior
+
+El 19 de octubre de 2026 el usuario pidió integrar avatar y escenario en una sola imagen sin fondo blanco. El modo predeterminado ahora utiliza las cinco composiciones derivadas con image_gen documentadas en `assets/runtime/scenes/composites-index.json`. Cada PNG muestra al mismo personaje sentado en su habitación, con una pose neutra fija, sin animación facial. Los originales permanecen intactos y separados; siguen disponibles en el modo de retratos por capas, sin el fondo blanco que añadía el CSS.

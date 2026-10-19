@@ -2265,10 +2265,10 @@ footer {
   width: 29%;
   left: 35.5%;
   bottom: 22%;
-  border: 3px solid #d7e5edbb;
+  border: 0;
   border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 12px 35px #0009;
+  background: transparent;
+  box-shadow: none;
   overflow: hidden;
   transform-origin: bottom center;
 }

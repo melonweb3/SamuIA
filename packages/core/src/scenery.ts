@@ -34,6 +34,11 @@ export function studioScenery(state: StudioSnapshot) {
   return {
     backdrop,
     ...studioBackdrops[backdrop],
+    integrated: state.settings.studioComposition === 'integrated',
+    file:
+      state.settings.studioComposition === 'integrated'
+        ? `samuia_setup_${backdrop}.png`
+        : studioBackdrops[backdrop].file,
     match,
     competition: league?.name ?? (match ? 'Competición sin asignar' : 'SamuIA Live Studio'),
     light: lights[state.decision.scene],

@@ -15,6 +15,7 @@ const frames = {
   tres_cuartos: 'translateX(8px) scale(1.02)',
 };
 export function Avatar({ state }: { state: StudioSnapshot }) {
+  const integrated = state.settings.studioComposition === 'integrated';
   const [failed, setFailed] = useState<OfficialAvatarFile[]>([]);
   const requested = selectOfficialAvatar(state.avatar, state.profile.avatar);
   const file = failed.includes(requested) ? avatarAssets.neutral : requested;
@@ -24,33 +25,41 @@ export function Avatar({ state }: { state: StudioSnapshot }) {
     <div className={`avatar-stage scene-${state.decision.scene}`}>
       <StudioScenery state={state} />
       <div className="stage-top">
-        <span className="stage-tag">● AVATAR OFICIAL</span>
-        <span className="stage-tag">{state.camera.replaceAll('_', ' ')}</span>
+        <span className="stage-tag">● {integrated ? 'ESCENA INTEGRADA' : 'RETRATO ORIGINAL'}</span>
+        <span className="stage-tag">
+          {integrated ? 'Plano streamer · fijo' : state.camera.replaceAll('_', ' ')}
+        </span>
       </div>
-      <div className="avatar-frame" style={{ transform: frames[state.camera] }}>
-        {unavailable ? (
-          <div className="avatar-unavailable" role="status">
-            <p>No se ha podido cargar el retrato oficial.</p>
-            <button onClick={() => setFailed([])}>Reintentar imagen</button>
-          </div>
-        ) : (
-          <img
-            key={source}
-            className="avatar-image"
-            src={source}
-            data-avatar-file={file}
-            alt={`Avatar oficial de ${state.profile.name}: ${officialAvatarDescriptions[file]}`}
-            decoding="async"
-            onError={() => setFailed((previous) => [...new Set([...previous, file])])}
-          />
-        )}
-      </div>
+      {!integrated && (
+        <div className="avatar-frame" style={{ transform: frames[state.camera] }}>
+          {unavailable ? (
+            <div className="avatar-unavailable" role="status">
+              <p>No se ha podido cargar el retrato oficial.</p>
+              <button onClick={() => setFailed([])}>Reintentar imagen</button>
+            </div>
+          ) : (
+            <img
+              key={source}
+              className="avatar-image"
+              src={source}
+              data-avatar-file={file}
+              alt={`Avatar oficial de ${state.profile.name}: ${officialAvatarDescriptions[file]}`}
+              decoding="async"
+              onError={() => setFailed((previous) => [...new Set([...previous, file])])}
+            />
+          )}
+        </div>
+      )}
       <div className="stage-bottom">
         <span>
           ▂ ▄ ▆ ▄ ▂ {state.avatar.speaking ? 'Reproducción simulada' : 'Listo para la siguiente'}
         </span>
         <small>
-          {unavailable ? 'IMAGEN NO DISPONIBLE' : officialAvatarDescriptions[file].toUpperCase()}
+          {integrated
+            ? 'COMPOSICIÓN ÚNICA · POSE FIJA'
+            : unavailable
+              ? 'IMAGEN NO DISPONIBLE'
+              : officialAvatarDescriptions[file].toUpperCase()}
         </small>
       </div>
     </div>

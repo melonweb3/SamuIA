@@ -198,6 +198,7 @@ export interface AICommentatorProfile {
 }
 export type StudioBackdrop = 'auto' | '01' | '02' | '03' | '04' | '05';
 export interface StudioSettings {
+  studioComposition: 'integrated' | 'portrait';
   studioBackdrop: StudioBackdrop;
   studioGraphics: boolean;
   studioLighting: boolean;
@@ -313,6 +314,7 @@ export type StudioCommand =
       kind: 'analysis' | 'prediction' | 'question' | 'community';
     };
 export const defaultSettings: StudioSettings = {
+  studioComposition: 'integrated',
   studioBackdrop: '05',
   studioGraphics: true,
   studioLighting: true,

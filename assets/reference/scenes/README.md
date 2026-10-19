@@ -14,7 +14,7 @@ Las cinco imágenes aportadas por el usuario se han inspeccionado visualmente y 
 
 ## Composición implementada
 
-La base principal es **05**: combina la zona de trabajo completa con luz azul y cálida y una identidad gallega reconocible. Se muestra el retrato oficial en un panel central para conservar exactamente sus bytes, fondo y proporciones, sin inventar un cuerpo ni recortar o regenerar al personaje. El fondo, el avatar y los gráficos son capas independientes.
+La base principal es **05**: combina la zona de trabajo completa con luz azul y cálida y una identidad gallega reconocible. Por petición expresa posterior del usuario, el modo predeterminado integra al personaje y la habitación en un PNG derivado por escena, sin marco ni fondo blanco. Los gráficos y la iluminación siguen siendo capas independientes. Los originales se conservan intactos.
 
 Los cinco fondos se pueden fijar en Ajustes → Escenario del comentarista. El modo automático usa 03 para charla, 02 para tecnología, 01 para tensión y 05 para fútbol, gaming y celebración. 04 queda disponible como variante manual de previa. El predeterminado es 05 fijo: una reacción no cambia de habitación inesperadamente.
 
@@ -29,3 +29,11 @@ Elementos dinámicos preparados:
 Las banderas, bufandas, escudos, monitores y mobiliario ya fotografiados son **fijos en cada PNG**. No se presentan como assets reemplazables. Los rótulos de partido sí son dinámicos; no se inventan escudos de otras competiciones. Los acentos azul/ámbar del marcador distinguen local y visitante, no pretenden ser sus colores oficiales. Para sustituir decoración dentro de las fotos harían falta derivados separados; los originales permanecen intactos.
 
 Los cambios de Ajustes duran la sesión, igual que el resto de la demo. El marcador usa el proveedor local simulado; no implica una conexión a resultados en directo.
+
+## Escenas integradas v2
+
+El usuario pidió expresamente integrar avatar y habitación en una sola imagen el 19 de octubre de 2026. Se generaron cinco composiciones con image_gen usando cada escena original y el retrato oficial 03; se revisaron visualmente cara, gorra, barba, ropa y proporciones visibles. No se muestran manos ni piernas. `assets/runtime/scenes/composites-index.json` registra fuentes, hashes y copias públicas. Estos derivados nunca sobrescriben originales.
+
+Ajustes → Presentación del avatar ofrece **Integrado** (predeterminado: una pose neutra fija por escena, un único PNG) y **Retratos originales** (capas con los cinco retratos intactos, sin el fondo blanco que antes añadía el contenedor CSS). Seleccionar un retrato activa el modo de capas. Las composiciones no tienen animación facial ni cambios de pose; los rótulos indican pose y plano fijos. Los datos del partido y la luz siguen siendo dinámicos.
+
+El HTML portátil contiene los cinco derivados y los diez PNG originales. La edición muestra «Escenas integradas v2». Para actualizar una copia descargada hay que volver a descargar el HTML.

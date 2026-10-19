@@ -61,7 +61,10 @@ export function Settings({ state, send }: ViewProps) {
                     ? state.profile.avatar
                     : 'official'
                 }
-                onChange={(e) => profile({ avatar: e.target.value })}
+                onChange={(e) => {
+                  profile({ avatar: e.target.value });
+                  settings({ studioComposition: 'portrait' });
+                }}
               >
                 <option value="official">Automático según la reacción</option>
                 {officialAvatarFiles.map((file) => (
@@ -71,8 +74,9 @@ export function Settings({ state, send }: ViewProps) {
                 ))}
               </select>
               <small>
-                Cinco retratos originales del mismo personaje, sin ediciones. También incluidos en
-                el HTML portátil.
+                Seleccionar un retrato activa el modo de capas con el original, sin fondo blanco. La
+                composición integrada usa una pose fija. Los cinco retratos se conservan en el HTML
+                portátil.
               </small>
             </label>
             <label>
@@ -259,6 +263,25 @@ export function Settings({ state, send }: ViewProps) {
         <Panel title="Escenario del comentarista">
           <div className="settings-body">
             <label>
+              Presentación del avatar
+              <select
+                aria-label="Presentación del avatar"
+                value={state.settings.studioComposition}
+                onChange={(e) =>
+                  settings({
+                    studioComposition: e.target.value as StudioSettings['studioComposition'],
+                  })
+                }
+              >
+                <option value="integrated">Integrado · personaje y escenario en una imagen</option>
+                <option value="portrait">Retratos originales · capas sin fondo blanco</option>
+              </select>
+              <small>
+                Integrado incluye a SamuIA sentado en cada escenario. Son imágenes estáticas, con
+                una pose fija; los gráficos y la luz siguen siendo dinámicos.
+              </small>
+            </label>
+            <label>
               Setup principal
               <select
                 aria-label="Setup principal"
@@ -306,7 +329,8 @@ export function Settings({ state, send }: ViewProps) {
             <p className="muted">
               Base principal: original 05. Escritorio, monitores, micrófono y decoración gallega de
               tus referencias. Los escudos y bufandas de las fotografías son fijos; los gráficos
-              superpuestos cambian con el partido. El avatar conserva su retrato original.
+              superpuestos cambian con el partido. El modo integrado muestra personaje y habitación
+              en un único PNG, sin marco blanco. Los originales siguen archivados sin cambios.
             </p>
           </div>
         </Panel>

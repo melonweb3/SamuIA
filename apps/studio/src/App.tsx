@@ -151,7 +151,7 @@ export function App({ session }: { session?: ReactionDirector }) {
           <i className={connected ? 'dot' : 'dot offline'} />
           <span>
             {connected ? 'Sistema local conectado' : 'Conectando al servidor'}
-            <small>Sin APIs externas · Escenas oficiales v1</small>
+            <small>Sin APIs externas · Escenas integradas v2</small>
           </span>
         </div>
       </aside>
@@ -162,7 +162,7 @@ export function App({ session }: { session?: ReactionDirector }) {
           </span>
           <div>
             <span className="local-chip">
-              ⌁ {session ? 'Demo portátil' : 'Entorno local'} · Escenas oficiales v1
+              ⌁ {session ? 'Demo portátil' : 'Entorno local'} · Escenas integradas v2
             </span>
             <span className="profile-icon">S</span>
             <span>

@@ -13,9 +13,9 @@ test('dashboard compilado: gol, alerta secundaria y pregunta de chat sin interru
   await expect(page.getByRole('img', { name: /Avatar oficial de SamuIA/ })).toBeVisible();
   await expect
     .poll(() =>
-      page.locator('.avatar-image').evaluate((image: HTMLImageElement) => image.naturalWidth),
+      page.locator('.scene-image').evaluate((image: HTMLImageElement) => image.naturalWidth),
     )
-    .toBe(1122);
+    .toBe(1672);
   await page.getByRole('button', { name: '+ Gol Celta', exact: true }).click();
   await expect(page.locator('.speech-content')).toContainText('GOOOOOL! Iepaaa meu!');
   await page.screenshot({ path: '.local/dashboard-desktop.png', fullPage: true });
@@ -175,6 +175,7 @@ test('las cinco referencias se ven offline y mantienen exactamente los PNG origi
     await page.getByRole('button', { name: 'Dashboard', exact: true }).click();
     const image = page.locator('.avatar-image');
     await expect(image).toHaveAttribute('data-avatar-file', filename);
+    await expect(page.locator('.avatar-frame')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     await expect
       .poll(() => image.evaluate((element: HTMLImageElement) => element.naturalWidth))
       .toBe(1122);
@@ -190,7 +191,13 @@ test('las cinco referencias se ven offline y mantienen exactamente los PNG origi
   }
 });
 
-test('si falla un retrato solo recurre a otro original o muestra un aviso', async ({ page }) => {
+test('si falla un retrato solo recurre a otro original o muestra un aviso', async ({
+  page,
+  request,
+}) => {
+  await request.post('/api/command', {
+    data: { type: 'settings', patch: { studioComposition: 'portrait' } },
+  });
   await page.route('**/samuia/avatar/*.png', (route) => route.abort());
   await page.goto('/');
   await expect(page.getByText('No se ha podido cargar el retrato oficial.')).toBeVisible();
@@ -198,13 +205,13 @@ test('si falla un retrato solo recurre a otro original o muestra un aviso', asyn
   await expect(page.getByRole('button', { name: 'Reintentar imagen' })).toBeVisible();
 });
 
-test('escenarios oficiales offline: selección, gráficos, luz e integridad de los cinco fondos', async ({
+test('escenarios integrados offline: selección, gráficos, luz e integridad de los cinco fondos', async ({
   page,
   context,
 }) => {
   const html = await readFile(resolve('.local/SamuIA-Live-Studio.html'), 'utf8');
   const originals: { id: string; runtimeFile: string; sha256: string }[] = JSON.parse(
-    await readFile('assets/reference/scenes/originals-index.json', 'utf8'),
+    await readFile('assets/runtime/scenes/composites-index.json', 'utf8'),
   );
   const network: string[] = [];
   page.on('request', (request) => {
@@ -216,8 +223,11 @@ test('escenarios oficiales offline: selección, gráficos, luz e integridad de l
   );
   await context.setOffline(true);
   await page.goto('http://localhost/studio-setup');
-  await expect(page.locator('.local-chip')).toContainText('Escenas oficiales v1');
-  await expect(page.locator('.scene-image')).toHaveAttribute('data-scene-file', 'escena_05.png');
+  await expect(page.locator('.local-chip')).toContainText('Escenas integradas v2');
+  await expect(page.locator('.scene-image')).toHaveAttribute(
+    'data-scene-file',
+    'samuia_setup_05.png',
+  );
   for (const entry of originals) {
     await page.getByRole('button', { name: 'Ajustes', exact: true }).click();
     await page
@@ -225,6 +235,9 @@ test('escenarios oficiales offline: selección, gráficos, luz e integridad de l
       .selectOption(entry.id);
     await page.getByRole('button', { name: 'Dashboard', exact: true }).click();
     const img = page.locator('.scene-image');
+    await expect(page.locator('.avatar-frame')).toHaveCount(0);
+    await expect(page.locator('.avatar-stage img')).toHaveCount(1);
+    await expect(img).toHaveAttribute('data-composition', 'integrated');
     await expect(img).toHaveAttribute('data-scene-file', entry.runtimeFile.split('/').at(-1)!);
     await expect.poll(() => img.evaluate((e: HTMLImageElement) => e.naturalWidth)).toBe(1672);
     const source = await img.getAttribute('src');
@@ -246,6 +259,6 @@ test('escenarios oficiales offline: selección, gráficos, luz e integridad de l
   await page.getByRole('button', { name: 'Dashboard', exact: true }).click();
   await expect(page.locator('.studio-match-graphics')).toHaveCount(0);
   await expect(page.locator('.scenery-light')).toHaveCount(0);
-  await expect(page.locator('.avatar-image')).toBeVisible();
+  await expect(page.locator('.scene-image')).toBeVisible();
   expect(network).toEqual([]);
 });

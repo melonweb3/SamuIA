@@ -15,6 +15,7 @@ const flags = z
   .strict();
 const settings = z
   .object({
+    studioComposition: z.enum(['integrated', 'portrait']),
     studioBackdrop: z.enum(['auto', '01', '02', '03', '04', '05']),
     studioGraphics: z.boolean(),
     studioLighting: z.boolean(),

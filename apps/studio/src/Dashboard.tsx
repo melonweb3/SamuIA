@@ -5,6 +5,7 @@ import { ChatPanel } from './Chat';
 import { Radar, Alerts } from './Sports';
 import { eventLabels } from '../../../packages/shared/src/index';
 export function Dashboard({ state, send }: ViewProps) {
+  const integrated = state.settings.studioComposition === 'integrated';
   const current = state.activeMatches.find((m) => m.id === state.currentMatchId),
     context = state.contexts.find((c) => c.matchId === current?.id);
   const selected =
@@ -24,9 +25,9 @@ export function Dashboard({ state, send }: ViewProps) {
             <div className="visual-values">
               {[
                 ['Escena', state.decision.scene],
-                ['Emoción', state.avatar.emotion],
-                ['Cámara', state.camera],
-                ['Gesto', state.avatar.gesture],
+                ['Emoción', integrated ? 'neutra fija' : state.avatar.emotion],
+                ['Cámara', integrated ? 'streamer fijo' : state.camera],
+                ['Gesto', integrated ? 'pose fija' : state.avatar.gesture],
               ].map(([name, value]) => (
                 <div key={name}>
                   <small>{name}</small>

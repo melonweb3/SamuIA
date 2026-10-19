@@ -7,8 +7,11 @@ let embedded: Record<string, string> | undefined;
 function sceneSource(filename: string): string | null {
   if (document.documentElement.dataset.portable !== 'true') return `/samuia/scenes/${filename}`;
   if (!embedded) {
-    const element = document.getElementById('samuia-scene-originals');
-    embedded = element?.textContent ? JSON.parse(element.textContent) : {};
+    embedded = {};
+    for (const id of ['samuia-scene-originals', 'samuia-scene-composites']) {
+      const element = document.getElementById(id);
+      Object.assign(embedded, element?.textContent ? JSON.parse(element.textContent) : {});
+    }
   }
   return embedded?.[filename] ?? null;
 }
@@ -29,8 +32,13 @@ export function StudioScenery({ state }: { state: StudioSnapshot }) {
           key={scene.file}
           className="scene-image"
           src={source}
-          alt={`Setup del comentarista: ${scene.label}`}
+          alt={
+            scene.integrated
+              ? `Avatar oficial de ${state.profile.name} integrado en ${scene.label}`
+              : `Setup del comentarista: ${scene.label}`
+          }
           data-scene-file={scene.file}
+          data-composition={state.settings.studioComposition}
           onError={() => setFailed((previous) => [...new Set([...previous, scene.file])])}
         />
       )}

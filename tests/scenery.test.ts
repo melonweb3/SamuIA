@@ -31,16 +31,16 @@ describe('Escenarios del comentarista', () => {
     );
     const state = d.snapshot(2000);
     const scene = studioScenery(state);
-    expect(scene.file).toBe('escena_05.png');
+    expect(scene.file).toBe('samuia_setup_05.png');
     expect(scene.match?.id).toBe('celta-madrid');
     expect(scene.match?.score).toEqual({ home: 1, away: 0 });
     const before = structuredClone(state.activeMatches);
     state.settings.studioBackdrop = 'auto';
     state.decision.scene = 'enfado';
-    expect(studioScenery(state).file).toBe('escena_01.png');
+    expect(studioScenery(state).file).toBe('samuia_setup_01.png');
     expect(studioScenery(state).light).toBe('#ff5555');
     state.decision.scene = 'charlando';
-    expect(studioScenery(state).file).toBe('escena_03.png');
+    expect(studioScenery(state).file).toBe('samuia_setup_03.png');
     state.decision.scene = 'celebracion';
     expect(studioScenery(state).light).toBe('#76f3ac');
     expect(state.activeMatches).toEqual(before);
@@ -61,6 +61,28 @@ describe('Escenarios del comentarista', () => {
     state.currentMatchId = null;
     expect(studioScenery(state).match).toBeUndefined();
     expect(studioScenery(state).competition).toBe('SamuIA Live Studio');
+  });
+  it('separa los derivados y permite volver a los retratos originales', () => {
+    const entries = JSON.parse(readFileSync('assets/runtime/scenes/composites-index.json', 'utf8'));
+    expect(entries).toHaveLength(5);
+    for (const entry of entries) {
+      expect(entry.originalFile.startsWith('assets/runtime/scenes/')).toBe(true);
+      const bytes = readFileSync(entry.originalFile);
+      expect(createHash('sha256').update(bytes).digest('hex')).toBe(entry.sha256);
+      expect(readFileSync(entry.runtimeFile).equals(bytes)).toBe(true);
+    }
+    const state = new ReactionDirector(1000, false).snapshot(1000);
+    expect(studioScenery(state).integrated).toBe(true);
+    state.settings.studioComposition = 'portrait';
+    expect(studioScenery(state).file).toBe('escena_05.png');
+    expect(studioScenery(state).integrated).toBe(false);
+    expect(
+      commandSchema.safeParse({ type: 'settings', patch: { studioComposition: 'integrated' } })
+        .success,
+    ).toBe(true);
+    expect(
+      commandSchema.safeParse({ type: 'settings', patch: { studioComposition: 'other' } }).success,
+    ).toBe(false);
   });
   it('valida los controles de escenario en la API', () => {
     for (const studioBackdrop of ['auto', '01', '02', '03', '04', '05'])

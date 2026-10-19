@@ -1,0 +1,87 @@
+[
+  {
+    "id": "01",
+    "originalFile": "assets/runtime/scenes/samuia_setup_01.png",
+    "runtimeFile": "apps/studio/public/samuia/scenes/samuia_setup_01.png",
+    "sha256": "be3f894d77f18da096be159964af562c7c09a208d08bc4ee2c2ec798d8acbad2",
+    "width": 1672,
+    "height": 941,
+    "bytes": 1901614,
+    "kind": "derived-integrated-composite",
+    "generator": "image_gen",
+    "character": "samuia-main-v1",
+    "expression": "neutral-fixed",
+    "sourceOriginalFiles": [
+      "assets/reference/scenes/originals/escena_01.png",
+      "assets/reference/originals/avatar_cara_03.png"
+    ]
+  },
+  {
+    "id": "02",
+    "originalFile": "assets/runtime/scenes/samuia_setup_02.png",
+    "runtimeFile": "apps/studio/public/samuia/scenes/samuia_setup_02.png",
+    "sha256": "ac15361d603a32e62ea0165e87f2f874e25e8ead1c21d236ee0e5f67f50234b4",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2158877,
+    "kind": "derived-integrated-composite",
+    "generator": "image_gen",
+    "character": "samuia-main-v1",
+    "expression": "neutral-fixed",
+    "sourceOriginalFiles": [
+      "assets/reference/scenes/originals/escena_02.png",
+      "assets/reference/originals/avatar_cara_03.png"
+    ]
+  },
+  {
+    "id": "03",
+    "originalFile": "assets/runtime/scenes/samuia_setup_03.png",
+    "runtimeFile": "apps/studio/public/samuia/scenes/samuia_setup_03.png",
+    "sha256": "4451956c824a89039dd0bb27085b23931f7b1ac4d34325fe21314b0cf2c96b5d",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2148632,
+    "kind": "derived-integrated-composite",
+    "generator": "image_gen",
+    "character": "samuia-main-v1",
+    "expression": "neutral-fixed",
+    "sourceOriginalFiles": [
+      "assets/reference/scenes/originals/escena_03.png",
+      "assets/reference/originals/avatar_cara_03.png"
+    ]
+  },
+  {
+    "id": "04",
+    "originalFile": "assets/runtime/scenes/samuia_setup_04.png",
+    "runtimeFile": "apps/studio/public/samuia/scenes/samuia_setup_04.png",
+    "sha256": "126c39c6683c5eaa42e6f195c22f92dd3b5a80db4e145df64057018f2b51ca68",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2116232,
+    "kind": "derived-integrated-composite",
+    "generator": "image_gen",
+    "character": "samuia-main-v1",
+    "expression": "neutral-fixed",
+    "sourceOriginalFiles": [
+      "assets/reference/scenes/originals/escena_04.png",
+      "assets/reference/originals/avatar_cara_03.png"
+    ]
+  },
+  {
+    "id": "05",
+    "originalFile": "assets/runtime/scenes/samuia_setup_05.png",
+    "runtimeFile": "apps/studio/public/samuia/scenes/samuia_setup_05.png",
+    "sha256": "4fe1a10e9b116c686e8815335fbf4bdcfb71bbdd61f954b50813bb529e6a6c88",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2136591,
+    "kind": "derived-integrated-composite",
+    "generator": "image_gen",
+    "character": "samuia-main-v1",
+    "expression": "neutral-fixed",
+    "sourceOriginalFiles": [
+      "assets/reference/scenes/originals/escena_05.png",
+      "assets/reference/originals/avatar_cara_03.png"
+    ]
+  }
+]
