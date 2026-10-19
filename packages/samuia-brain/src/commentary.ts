@@ -166,6 +166,11 @@ export class CommentaryEngine {
             ? ' Os lo dije: aquella posibilidad que publiqué se ha cumplido. Seguía siendo una estimación.'
             : ' Mi predicción anterior envejeció regular. Ha vencido el plazo o ha ocurrido algo distinto; me equivoqué.';
         draft.recallIds.push(resolved.id);
+        draft.decision.avatar = directiveForAnimation(
+          resolved.status === 'success' ? 'happy' : 'frustrated',
+          draft.decision.energy / 100,
+          'match',
+        );
       }
       if (profile.responseLength === 'short' && !resolved)
         say = say
@@ -208,6 +213,14 @@ export class CommentaryEngine {
       say = `Se está calentando el ${match.home.shortName} - ${match.away.shortName}: ${groupedCount} avisos menores seguidos. Cabeza fría.`;
     else
       switch (event.type) {
+        case 'kickoff':
+          say = `¡Arranca el partido! ${match.home.shortName} contra ${match.away.shortName}. Vamos a vivirlo juntos y a leer al chat.`;
+          draft.decision.emotion = 'sonrisa';
+          break;
+        case 'second_half':
+          say = `¡Comienza la segunda parte! ${scoreline(match)}. Vamos a ver cómo vuelven los equipos.`;
+          draft.decision.emotion = 'sonrisa';
+          break;
         case 'goal':
           say =
             c.intensity === 5
@@ -286,8 +299,9 @@ export class CommentaryEngine {
       say += ` ${question}`;
       draft.question = question;
     }
-    const animation =
-      event.type === 'goal'
+    const animation = ['kickoff', 'second_half'].includes(event.type)
+      ? 'happy'
+      : event.type === 'goal'
         ? 'goal'
         : event.type === 'var'
           ? 'var'
@@ -307,7 +321,16 @@ export class CommentaryEngine {
           ? 'win'
           : 'loss'
         : animation;
-    draft.decision.avatar = directiveForAnimation(result, draft.decision.energy / 100, 'match');
+    const reaction =
+      failed || (event.type === 'goal' && affinity && affinity !== event.side)
+        ? 'frustrated'
+        : result;
+    if (event.type === 'goal' && reaction === 'frustrated') {
+      draft.decision.scene = 'futbol';
+      draft.decision.emotion = 'serio';
+      draft.decision.gesture = 'ninguno';
+    }
+    draft.decision.avatar = directiveForAnimation(reaction, draft.decision.energy / 100, 'match');
     draft.decision.say = say;
     return this.style(draft, match, p, event.type !== 'goal');
   }

@@ -130,6 +130,8 @@ export function calculateProbabilities(m: MatchState): MatchState['probabilities
   return { home, draw, away: Math.round((100 - home - draw) * 10) / 10 };
 }
 const heatWeights: Record<EventType, number> = {
+  kickoff: 0,
+  second_half: 0,
   goal: 20,
   chance: 8,
   missed_chance: 8,
@@ -247,11 +249,20 @@ export class MatchManager {
   }
   receiveEvent(matchId: string, type: EventType, side: Side, now = Date.now()): MatchEvent {
     const m = this.get(matchId);
-    if (
+    if (type === 'kickoff') {
+      if (m.status !== 'upcoming') throw new Error('El inicio requiere un partido pendiente');
+      m.status = 'live';
+      m.minute = 0;
+    } else if (type === 'second_half') {
+      if (m.status !== 'halftime') throw new Error('La segunda parte requiere el descanso');
+      m.status = 'live';
+      m.minute = Math.max(45, m.minute);
+    } else if (
       !['live', 'halftime'].includes(m.status) ||
       (m.status === 'halftime' && type !== 'fulltime')
-    )
+    ) {
       throw new Error('Inicia o reanuda el partido antes de simular eventos');
+    }
     const s = m.statistics[side];
     if (type === 'red' && s.red >= 4)
       throw new Error('Máximo de cuatro expulsiones en esta simulación');

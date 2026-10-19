@@ -40,6 +40,8 @@ export interface ReactionDecision {
   energy: number;
 }
 export const eventTypes = [
+  'kickoff',
+  'second_half',
   'goal',
   'chance',
   'missed_chance',
@@ -55,6 +57,8 @@ export type EventType = (typeof eventTypes)[number];
 export type Side = 'home' | 'away';
 export type Priority = 'ALTA' | 'MEDIA' | 'BAJA';
 export const eventLabels: Record<EventType, string> = {
+  kickoff: 'Inicio del partido',
+  second_half: 'Segunda parte',
   goal: 'Gol',
   chance: 'Ocasión clara',
   missed_chance: 'Ocasión fallada',
@@ -289,6 +293,7 @@ export interface StudioSnapshot {
     decision: ReactionDecision;
     matchId?: string;
     memoryIds: string[];
+    sourceIds: string[];
   }[];
   now: number;
 }

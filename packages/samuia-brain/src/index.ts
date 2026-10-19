@@ -25,10 +25,14 @@ export class SamuIABrain {
       (message.detectedTopic === 'futbol'
         ? matches.find((m) => m.id === message.relatedMatchId)
         : undefined);
+    const pollMatch = matches.find((m) => m.id === message.relatedMatchId);
+    const isVote =
+      /^(si|no)\b/.test(text) && pollMatch && this.commentary.context.community(pollMatch.id);
     let say = '';
     if (/insulta|humilla|idiota|imbecil|mierda|racista|odio/.test(text))
       say =
         'Aquí el pique es futbolero, no personal. Nos podemos calentar con el partido sin atacar a nadie.';
+    else if (isVote && pollMatch) return this.commentary.analyze(pollMatch, profile, 'community');
     else if (/interesante|loco|cambiamos|pasando algo/.test(text)) {
       const best = manager.radar()[0];
       say = best

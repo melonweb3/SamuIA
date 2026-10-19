@@ -6,6 +6,8 @@ import {
 } from '../../shared/src/index';
 import type { MatchManager } from '../../football-engine/src/index';
 const weights = {
+  kickoff: 70,
+  second_half: 70,
   goal: 100,
   penalty: 90,
   red: 90,

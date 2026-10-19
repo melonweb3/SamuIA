@@ -8,7 +8,7 @@ Esta versión reconstruye el MVP descrito en la conversación y añade la person
 
 Descarga **[downloads/SamuIA-Live-Studio.html](downloads/SamuIA-Live-Studio.html)** y abre el archivo guardado con un navegador moderno. Contiene React, estilos y los mismos motores dentro de un único HTML; no necesita servidor ni Internet. En GitHub, usa el botón de descargar el archivo: la vista del código HTML no es la aplicación.
 
-**Para actualizar una copia anterior:** vuelve a descargar el HTML; el archivo guardado en tu ordenador no se actualiza al cambiar GitHub. Guárdalo como `SamuIA-avatar-simulation-v3.1.html` y abre ese archivo nuevo. Esta edición muestra **«Avatar SIMULATION v3.1»** arriba, incluye los cinco fondos originales y permite elegirlos en **Ajustes → Escenario del comentarista → Setup principal**. Incluye cinco composiciones con personaje y habitación unidos en una imagen por escena, sin marco ni fondo blanco. Si no ves ese indicador, estás abriendo otra edición.
+**Para actualizar una copia anterior:** vuelve a descargar el HTML; el archivo guardado en tu ordenador no se actualiza al cambiar GitHub. Guárdalo como `SamuIA-partido-completo-v4.html` y abre ese archivo nuevo. Esta edición muestra **«Partido completo v4»** arriba, incluye los cinco fondos originales y permite elegirlos en **Ajustes → Escenario del comentarista → Setup principal**. Incluye cinco composiciones con personaje y habitación unidos en una imagen por escena, sin marco ni fondo blanco. Si no ves ese indicador, estás abriendo otra edición.
 
 Cada pestaña tiene su propia sesión. **Recargar el HTML restaura la demo inicial**. Puedes exportar los datos de memoria como JSON desde Memoria (es una exportación para consulta, no un importador de sesiones). La voz es un temporizador sin audio. El avatar usa las cinco fotografías originales oficiales; los fondos siguen siendo escenarios de demostración.
 
@@ -161,3 +161,7 @@ Abre **SIMULATION** para probar los 13 estados de animación, mirada, intensidad
 Las imágenes actuales son fallbacks visuales; todavía no hay rig 2D/3D ni voz real. La sincronización de boca se simula por texto y puede sustituirse por visemas con tiempos de audio. El host permite inyectar un renderer de avatar sin cambiar el motor editorial. Consulta [el contrato y la integración](docs/avatar-animation.md).
 
 La edición v3.1 conserva el encuadre completo de los escenarios, usa la misma presentación en Dashboard y SIMULATION y elimina el balanceo de fotografías. Los retratos originales tienen un visor de referencia separado para evitar tapar el mobiliario con un montaje incorrecto.
+
+### Partido de prueba end-to-end
+
+Abre **Partido de prueba → Reproducir partido completo**. El guion local de 24 pasos recorre un Celta–Dépor desde el inicio hasta el final 2–1, con comentarios, comunidad, tarjetas, VAR, penalti, cambios, descanso y predicciones verificadas (una acertada y otra fallida). Puedes pausar, avanzar paso a paso, escribir mensajes y usar controles manuales. No altera los partidos del estudio ni necesita API externa. Los PNG son referencias estáticas y la voz sigue simulada. Consulta [el recorrido y la arquitectura reutilizada](docs/partido-prueba.md).

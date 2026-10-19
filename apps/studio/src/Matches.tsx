@@ -38,7 +38,7 @@ export function EventSimulator({ match, send }: { match: MatchState; send: Send 
       </label>
       <div className="event-buttons">
         {eventTypes
-          .filter((t) => t !== 'goal')
+          .filter((t) => !['goal', 'kickoff', 'second_half'].includes(t))
           .map((t) => (
             <button
               className={`event-${t}`}
@@ -53,7 +53,18 @@ export function EventSimulator({ match, send }: { match: MatchState; send: Send 
       {disabled && (
         <button
           className="resume"
-          onClick={() => void send({ type: 'match-status', matchId: match.id, status: 'live' })}
+          onClick={() =>
+            void send(
+              match.status === 'finished'
+                ? { type: 'match-status', matchId: match.id, status: 'live' }
+                : {
+                    type: 'event',
+                    matchId: match.id,
+                    eventType: match.status === 'upcoming' ? 'kickoff' : 'second_half',
+                    side: 'home',
+                  },
+            )
+          }
         >
           ▷{' '}
           {match.status === 'upcoming'

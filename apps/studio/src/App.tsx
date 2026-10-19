@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { MatchSimulationSession } from '../../../packages/match-simulation/src/index';
+import { MatchSimulation } from './MatchSimulation';
 import type { ReactionDirector } from '../../../packages/core/src/index';
 import { DISCLAIMER, type StudioSnapshot } from '../../../packages/shared/src/index';
 import { Dashboard } from './Dashboard';
@@ -18,12 +20,16 @@ const pages = [
   'Memoria',
   'Integraciones',
   'SIMULATION',
+  'Partido de prueba',
   'Ajustes',
 ] as const;
 type Page = (typeof pages)[number];
-const icons = ['◫', '⚑', '◎', '☷', '◈', '⌘', '▷', '⚙'];
+const icons = ['◫', '⚑', '◎', '☷', '◈', '⌘', '▷', '⚽', '⚙'];
 export function App({ session }: { session?: ReactionDirector }) {
-  const [page, setPage] = useState<Page>('Dashboard'),
+  const [matchSimulation, setMatchSimulation] = useState(() => new MatchSimulationSession());
+  const [page, setPage] = useState<Page>(
+      location.hash === '#partido-prueba' ? 'Partido de prueba' : 'Dashboard',
+    ),
     [state, setState] = useState<StudioSnapshot | null>(null),
     [connected, setConnected] = useState(false),
     [error, setError] = useState('');
@@ -153,7 +159,7 @@ export function App({ session }: { session?: ReactionDirector }) {
           <i className={connected ? 'dot' : 'dot offline'} />
           <span>
             {connected ? 'Sistema local conectado' : 'Conectando al servidor'}
-            <small>Sin APIs externas · Avatar SIMULATION v3.1</small>
+            <small>Sin APIs externas · Partido completo v4</small>
           </span>
         </div>
       </aside>
@@ -164,7 +170,7 @@ export function App({ session }: { session?: ReactionDirector }) {
           </span>
           <div>
             <span className="local-chip">
-              ⌁ {session ? 'Demo portátil' : 'Entorno local'} · Avatar SIMULATION v3.1
+              ⌁ {session ? 'Demo portátil' : 'Entorno local'} · Partido completo v4
             </span>
             <span className="profile-icon">S</span>
             <span>
@@ -190,7 +196,7 @@ export function App({ session }: { session?: ReactionDirector }) {
             </div>
             <span className="state-badge">
               <i className="dot" />
-              {state?.state ?? 'CONECTANDO'}
+              {page === 'Partido de prueba' ? 'SIMULATION' : (state?.state ?? 'CONECTANDO')}
               <small>Voz simulada</small>
             </span>
           </div>
@@ -224,6 +230,9 @@ export function App({ session }: { session?: ReactionDirector }) {
               {page === 'Ajustes' && <Settings state={state} send={send} />}{' '}
               {page === 'Integraciones' && <Integrations />}
               {page === 'SIMULATION' && <AvatarSimulation state={state} send={send} />}
+              {page === 'Partido de prueba' && (
+                <MatchSimulation session={matchSimulation} onSessionChange={setMatchSimulation} />
+              )}
               <footer>
                 <span>{DISCLAIMER}</span>
                 <span>● SAMUIA LIVE STUDIO / DEMO LOCAL</span>

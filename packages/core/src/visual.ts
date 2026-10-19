@@ -3,6 +3,9 @@ import {
   type Scene,
   type ReactionDecision,
   type AvatarState,
+  type AvatarAnimationFrame,
+  type Emotion,
+  type AvatarExpression,
 } from '../../shared/src/index';
 export const officialAvatarFiles = [
   'avatar_cara_01.png',
@@ -46,6 +49,30 @@ export function selectOfficialAvatar(
   if (state.emotion === 'serio' || state.emotion === 'enfadado_leve') return avatarAssets.serio;
   if (state.emotion === 'sonrisa' || state.emotion === 'risa') return avatarAssets.sonrisa;
   return state.speaking ? avatarAssets.hablando : avatarAssets.neutral;
+}
+export function selectAnimationReference(
+  frame: AvatarAnimationFrame,
+  profileAvatar = 'official',
+): OfficialAvatarFile {
+  const emotions: Record<AvatarExpression, Emotion> = {
+    neutral: 'neutral',
+    happy: 'sonrisa',
+    shock: 'sorpresa',
+    angry: 'enfadado_leve',
+    laugh: 'risa',
+    frustrated: 'serio',
+    thinking: 'pensativo',
+    sad: 'serio',
+  };
+  return selectOfficialAvatar(
+    {
+      emotion: emotions[frame.expression],
+      gesture: 'ninguno',
+      energy: frame.intensity * 100,
+      speaking: frame.speaking,
+    },
+    profileAvatar,
+  );
 }
 export class CameraDirector {
   current: Camera = 'streamer';

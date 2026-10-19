@@ -15,6 +15,7 @@ import {
   type StudioSnapshot,
   type SportsAlert,
   type VisemeCue,
+  type MatchState,
 } from '../../shared/src/index';
 import { MatchManager } from '../../football-engine/src/index';
 import { ChatQueue } from '../../chat-engine/src/index';
@@ -48,11 +49,16 @@ export class ReactionDirector {
   private speakingChatId: string | null = null;
   private controls: CommentaryDraft[] = [];
   private lastMinuteAt: number;
-  constructor(now = Date.now(), seed = true) {
+  constructor(
+    now = Date.now(),
+    seed = true,
+    private options: { matches?: MatchState[]; advanceMinutes?: boolean } = {},
+  ) {
+    if (options.matches) this.manager = new MatchManager(options.matches);
     this.animation = new AvatarAnimationController(now);
     this.lastMinuteAt = now;
     for (const m of this.manager.activeMatches) this.context.get(m.id).lastCommentAt = now;
-    this.manager.focus('celta-madrid', now);
+    if (this.manager.currentMatchId) this.manager.focus(this.manager.currentMatchId, now);
     if (seed) {
       this.chat.add('Pedro', 'Samu, ¿cómo ves al Celta?', this.manager.followed(), now);
       this.chat.add('Lucía', '¿Cuál está más interesante?', this.manager.followed(), now + 1);
@@ -96,6 +102,7 @@ export class ReactionDirector {
       decision: structuredClone(draft.decision),
       matchId: draft.matchId,
       memoryIds,
+      sourceIds: [...draft.sourceIds],
     });
     this.history = this.history.slice(0, 100);
   }
@@ -288,7 +295,7 @@ export class ReactionDirector {
     this.tick(now);
   }
   tick(now = Date.now()) {
-    if (now - this.lastMinuteAt >= 15000) {
+    if (this.options.advanceMinutes !== false && now - this.lastMinuteAt >= 15000) {
       const elapsed = Math.floor((now - this.lastMinuteAt) / 15000);
       this.lastMinuteAt += elapsed * 15000;
       for (const m of this.manager.followed())
@@ -396,11 +403,9 @@ export class ReactionDirector {
       this.manager.activeMatches.some((m) => m.id === message.relatedMatchId)
     )
       this.manager.focus(message.relatedMatchId, now);
-    this.perform(
-      this.brain.respond(message, this.manager, this.outputProfile),
-      `Chat · ${message.username}`,
-      now,
-    );
+    const draft = this.brain.respond(message, this.manager, this.outputProfile);
+    draft.sourceIds = [...new Set([...draft.sourceIds, message.id])];
+    this.perform(draft, `Chat · ${message.username}`, now);
   }
   /** Connect real TTS playback callbacks here; the same clock drives speech and animation. */
   updateVoiceTiming(
