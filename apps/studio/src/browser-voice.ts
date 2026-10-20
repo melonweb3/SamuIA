@@ -25,6 +25,7 @@ export class BrowserVoiceProvider implements VoiceProvider {
     const utterance = new SpeechSynthesisUtterance(request.text);
     utterance.voice = this.voice;
     utterance.lang = this.voice.lang;
+    utterance.rate = request.rate ?? 1;
     // Browser speech exposes no phoneme alignment; avatar mouth cues remain approximate.
     utterance.onstart = () => events.started(Date.now());
     utterance.onend = () => events.ended(Date.now());

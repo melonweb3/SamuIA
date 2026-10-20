@@ -97,3 +97,7 @@ La aplicación conserva el servidor local en loopback por defecto. Para exponer 
 Se prueban normalizadores, replies, filtros, identidad, tendencias verificables, firmas Kick, cancelación y degradación independiente. Se verifica fanout por proporción, reconexión, callbacks obsoletos, límites y ausencia de secretos en snapshots. Se genera un WAV real con FFmpeg/Flite.
 
 En navegador se captura el compositor en ambos formatos y se envía al encoder FFmpeg real, comprobando bytes H.264/AAC y reproducción TTS con reloj del avatar. El modo local impide abrir destinos públicos. Las pruebas de red social y RTMP usan fixtures o adaptadores controlados: no se ha publicado ningún directo real ni se han incluido credenciales de cuentas.
+
+## Voz personalizada · v8
+
+[Voice Studio](voice-studio.md) añade un proveedor capturable principal/fallback. Cuando está habilitado y tiene audio compatible, el productor existente usa ese mismo audio privado; el reproductor normal de la pestaña se detiene para no duplicarlo. Web Speech y simulación no aportan una pista de audio capturable. El proveedor Flite anterior y la prueba local siguen disponibles. No se ha probado una clonación real ni una emisión pública con cuenta.

@@ -92,7 +92,7 @@ director.updateVoiceTiming(utteranceId, positionMs, durationMs, visemeCues, now)
 director.voiceEnded(utteranceId, now);
 ```
 
-`utteranceId` se obtiene de `snapshot.animation.speech.id`. El progreso actualiza el mismo reloj que usa el director y cambia la fuente a `audio-visemes`; los callbacks antiguos o cues inválidos se rechazan. El nuevo `VoiceController` gestiona preparación/buffering, pausa, fin y cancelación antes de enviar el reloj al avatar. Hay proveedor simulado y adaptador opcional de Web Speech con voces locales; no hay clonación ni servicio externo de voz. Consulta [el contrato de voz](voz.md).
+`utteranceId` se obtiene de `snapshot.animation.speech.id`. El progreso actualiza el mismo reloj que usa el director y cambia la fuente a `audio-visemes`; los callbacks antiguos o cues inválidos se rechazan. El nuevo `VoiceController` gestiona preparación/buffering, pausa, fin y cancelación antes de enviar el reloj al avatar. Hay proveedor simulado y adaptador opcional de Web Speech con voces locales; Voice Studio v8 añade adaptadores de voz personalizada en el servidor. Consulta [el contrato de voz](voz.md) y [Voice Studio](voice-studio.md).
 
 ## Probar
 
@@ -107,3 +107,7 @@ La edición descargable actual muestra **Retransmisión MVP v5**. Vuelve a desca
 SIMULATION respeta la misma presentación elegida en Dashboard; ya no fuerza un retrato superpuesto sobre el micrófono. La vista de escenario conserva la relación 1672:941 completa y sin recortar los laterales. Los fallbacks no reciben transformaciones de cámara, balanceo o respiración. Las señales siguen activas para un renderer con rig real. El visor de retratos originales no muestra la habitación ni simula su integración con el mobiliario.
 
 El marcador y la competición se muestran debajo de la imagen, fuera del encuadre, para no tapar el micrófono ni el escritorio.
+
+## Voz v8 y amplitud
+
+`VoiceEvents.level` y `AvatarAnimationController.updateSpeechAmplitude` transportan amplitud medida 0–1 con caducidad; la fuente se marca `audio-amplitude`. El futuro rig puede abrir la boca con ese valor antes de disponer de fonemas/visemas. Se conserva el reloj/contrato previo y las imágenes no se modifican. Voice Studio permite que un CRITICAL interrumpa una frase de menor prioridad si está configurado. No se ha creado un avatar completo ni alineación fonética en esta fase.

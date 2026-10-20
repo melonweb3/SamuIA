@@ -3,6 +3,12 @@ import { relatedMatch } from '../../chat-engine/src/index';
 import type { ExternalChatMessage } from '../../shared/src/index';
 import { AppCommunityCommentProvider } from '../../live-data/src/contracts';
 import { VoiceController, type VoiceProvider } from '../../voice/src/index';
+import {
+  voiceEmotion,
+  priorityRank,
+  type ReactionEvent,
+  type SpeechPriority,
+} from '../../voice/src/contracts';
 import { AvatarAnimationController } from '../../avatar-animation/src/index';
 import {
   id,
@@ -63,6 +69,7 @@ export class ReactionDirector {
   pendingChatId: string | null = null;
   private speakingChatId: string | null = null;
   private controls: CommentaryDraft[] = [];
+  interruptVoiceEnabled = false;
   private lastMinuteAt: number;
   constructor(
     now = Date.now(),
@@ -96,6 +103,17 @@ export class ReactionDirector {
       : this.profile;
   }
   private perform(draft: CommentaryDraft, source: string, now: number, sports = false) {
+    const reaction: ReactionEvent = draft.reaction ?? {
+      id: id(),
+      source,
+      matchId: draft.matchId,
+      text: draft.decision.say,
+      emotion: voiceEmotion(draft.decision),
+      intensity: draft.decision.energy / 100,
+      priority: sports ? 'HIGH' : 'NORMAL',
+      interruptible: true,
+      timestamp: now,
+    };
     const memoryIds = draft.matchId
       ? this.context.publish(this.manager.get(draft.matchId), draft, now)
       : [];
@@ -120,6 +138,7 @@ export class ReactionDirector {
         emotion: draft.decision.emotion,
         energy: draft.decision.energy,
         durationMs,
+        reaction,
       },
       now,
     );
@@ -359,6 +378,35 @@ export class ReactionDirector {
   tick(now = Date.now()) {
     this.playback.tick(now);
     this.syncVoice(now);
+    const current = this.playback.snapshot().reaction;
+    if (
+      this.busy &&
+      this.interruptVoiceEnabled &&
+      current?.priority !== 'CRITICAL' &&
+      current?.interruptible !== false &&
+      this.settings.autoReactions
+    ) {
+      const critical = this.scheduler.sportsEventQueue.find((i) =>
+        ['goal', 'red'].includes(i.event.type),
+      );
+      if (critical) {
+        const item = this.scheduler.take(
+          this.manager,
+          { ...this.settings, reactionCooldown: 0 },
+          now,
+          true,
+        );
+        if (item) {
+          this.playback.cancel();
+          if (this.speakingChatId) {
+            this.chat.silence();
+            this.speakingChatId = null;
+          }
+          this.startSports(item, now);
+          return;
+        }
+      }
+    }
     if (this.options.advanceMinutes !== false && now - this.lastMinuteAt >= 15000) {
       const elapsed = Math.floor((now - this.lastMinuteAt) / 15000);
       this.lastMinuteAt += elapsed * 15000;
@@ -398,20 +446,7 @@ export class ReactionDirector {
     }
     const item = this.scheduler.take(this.manager, this.settings, now);
     if (item) {
-      const m = this.manager.get(item.event.matchId);
-      this.manager.focus(m.id, now);
-      const draft = this.commentary.event(m, item.event, this.outputProfile, item.groupedCount);
-      m.lastReaction = { at: now, say: draft.decision.say };
-      for (const a of this.alerts)
-        if (
-          a.id === item.id ||
-          (item.groupedCount > 1 &&
-            a.event.matchId === m.id &&
-            ['yellow', 'substitution'].includes(a.event.type) &&
-            a.disposition === 'queued')
-        )
-          a.disposition = 'reacted';
-      this.perform(draft, `${eventLabels[item.event.type]} · ${m.home.shortName}`, now, true);
+      this.startSports(item, now);
       return;
     }
     for (const alert of this.alerts)
@@ -647,6 +682,69 @@ export class ReactionDirector {
     else this.playback.cancel();
     this.voice = provider;
   }
+  operator(reaction: ReactionEvent, interrupt = false, now = Date.now()) {
+    if (reaction.matchId) this.manager.get(reaction.matchId);
+    if (
+      this.history.some((h) => h.sourceIds.includes(reaction.id)) ||
+      this.controls.some((d) => d.reaction?.id === reaction.id)
+    )
+      return false;
+    const draft = this.brain.operator(reaction);
+    const active = this.playback.snapshot().reaction;
+    const mayInterrupt =
+      this.interruptVoiceEnabled &&
+      (interrupt || (reaction.priority === 'CRITICAL' && active?.priority !== 'CRITICAL')) &&
+      active?.interruptible !== false;
+    if (!this.busy || mayInterrupt) {
+      this.playback.cancel();
+      if (this.speakingChatId) {
+        this.chat.silence();
+        this.speakingChatId = null;
+      }
+      this.perform(draft, reaction.source, now);
+    } else {
+      this.controls.push(draft);
+      this.controls.sort(
+        (a, b) =>
+          priorityRank[b.reaction?.priority ?? 'NORMAL'] -
+          priorityRank[a.reaction?.priority ?? 'NORMAL'],
+      );
+      this.controls = this.controls.slice(0, 50);
+    }
+    return true;
+  }
+  private startSports(item: import('../../shared/src/index').SportsEventQueueItem, now: number) {
+    const m = this.manager.get(item.event.matchId);
+    this.manager.focus(m.id, now);
+    const draft = this.commentary.event(m, item.event, this.outputProfile, item.groupedCount);
+    const priority: SpeechPriority = ['goal', 'red'].includes(item.event.type)
+      ? 'CRITICAL'
+      : ['penalty', 'var', 'chance', 'missed_chance', 'save'].includes(item.event.type)
+        ? 'HIGH'
+        : 'NORMAL';
+    draft.reaction = {
+      id: item.event.id,
+      source: `match:${item.event.type}`,
+      matchId: m.id,
+      text: draft.decision.say,
+      emotion: voiceEmotion(draft.decision),
+      intensity: draft.decision.energy / 100,
+      priority,
+      interruptible: priority !== 'CRITICAL',
+      timestamp: now,
+    };
+    m.lastReaction = { at: now, say: draft.decision.say };
+    for (const a of this.alerts)
+      if (
+        a.id === item.id ||
+        (item.groupedCount > 1 &&
+          a.event.matchId === m.id &&
+          ['yellow', 'substitution'].includes(a.event.type) &&
+          a.disposition === 'queued')
+      )
+        a.disposition = 'reacted';
+    this.perform(draft, `${eventLabels[item.event.type]} · ${m.home.shortName}`, now, true);
+  }
   pauseVoice(now = Date.now()) {
     this.playback.pause(now);
     this.syncVoice(now);
@@ -660,6 +758,12 @@ export class ReactionDirector {
     const voice = this.playback.snapshot();
     if (!voice.utteranceId || this.animation.frame(now).speech?.id !== voice.utteranceId) return;
     if (this.playback.active) {
+      if (voice.sync === 'audio-amplitude')
+        this.animation.updateSpeechAmplitude(
+          voice.utteranceId,
+          voice.audioLevel ?? 0,
+          voice.audioLevelAt ?? now,
+        );
       if (voice.sync === 'audio-visemes')
         this.animation.updateSpeechTiming(
           voice.utteranceId,
@@ -690,7 +794,10 @@ export class ReactionDirector {
       mode: 'DEMO',
       dataMode: this.dataMode,
       community: this.communityAnalyzer.summary(undefined, now),
-      voice: this.playback.snapshot(),
+      voice: {
+        ...this.playback.snapshot(),
+        queueLength: (this.playback.snapshot().queueLength ?? 0) + this.controls.length,
+      },
       state: this.state,
       decision: this.decision,
       camera: this.camera.current,

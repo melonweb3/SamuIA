@@ -225,7 +225,7 @@ test('escenarios integrados offline: selección, gráficos, luz e integridad de 
   );
   await context.setOffline(true);
   await page.goto('http://localhost/studio-setup');
-  await expect(page.locator('.local-chip')).toContainText('Multiplataforma v7');
+  await expect(page.locator('.local-chip')).toContainText('Voice Studio v8');
   await expect(page.locator('.scene-image')).toHaveAttribute(
     'data-scene-file',
     'samuia_setup_05.png',

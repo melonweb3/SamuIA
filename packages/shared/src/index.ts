@@ -284,6 +284,7 @@ export interface AvatarState {
   speaking: boolean;
 }
 export interface CommentaryDraft {
+  reaction?: import('../../voice/src/contracts').ReactionEvent;
   decision: ReactionDecision;
   matchId?: string;
   opinion?: Omit<Opinion, keyof MemoryEntry>;
@@ -295,6 +296,7 @@ export interface CommentaryDraft {
   sourceIds: string[];
 }
 export interface StudioSnapshot {
+  voiceStudio?: import('../../voice/src/contracts').VoiceStudioState;
   community: CommunitySummary;
   multiplatform?: MultiplatformState;
   dataMode: DataMode;

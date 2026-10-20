@@ -9,9 +9,12 @@ import { readFile, stat } from 'node:fs/promises';
 import { resolve, sep, extname } from 'node:path';
 import { ReactionDirector } from '../../../packages/core/src/index';
 import { commandSchema } from './commands';
+import { VoiceStudioService } from './voice-studio';
+import { voiceCommandSchema } from './voice-commands';
 export function createStudioServer(
   options: {
     live?: LiveDataSession;
+    voiceStudio?: VoiceStudioService;
     multiplatformFactory?: (
       receive: (message: ExternalChatMessage) => void,
     ) => ReturnType<typeof createMultiplatform>;
@@ -20,16 +23,29 @@ export function createStudioServer(
   const simulation = new ReactionDirector();
   const live = options.live ?? createConfiguredLiveSession();
   let director = simulation;
+  const voiceStudio = options.voiceStudio ?? new VoiceStudioService();
   const multi = (options.multiplatformFactory ?? createMultiplatform)((message) =>
     director.receiveExternalChat(message),
   );
   const originalVoices = new Map<ReactionDirector, VoiceProvider>();
+  let voiceCaptureActive = false;
+  const broadcastVoice = () => (voiceStudio.capturable ? voiceStudio : multi.voice);
   const syncVoice = () => {
-    if (multi.broadcast.running && multi.voice) {
+    if (voiceCaptureActive !== multi.broadcast.running && director.voice === voiceStudio)
+      director.command({ type: 'control', action: 'silence' });
+    voiceCaptureActive = multi.broadcast.running;
+    voiceStudio.captureOnly = multi.broadcast.running;
+    director.interruptVoiceEnabled = voiceStudio.enabled && voiceStudio.settings.interruptEnabled;
+    const selected = multi.broadcast.running
+      ? broadcastVoice()
+      : voiceStudio.enabled
+        ? voiceStudio
+        : null;
+    if (selected) {
       if (!originalVoices.has(director)) {
         originalVoices.set(director, director.voice);
-        director.setVoiceProvider(multi.voice);
       }
+      if (director.voice !== selected) director.setVoiceProvider(selected);
     } else
       for (const [owner, voice] of originalVoices) {
         owner.setVoiceProvider(voice);
@@ -38,9 +54,13 @@ export function createStudioServer(
   };
   const snapshot = () => ({
     ...(director === live.director ? live.snapshot() : director.snapshot()),
+    voiceStudio: voiceStudio.snapshot(),
     multiplatform: {
       chats: multi.chats.snapshot(),
-      broadcast: multi.broadcast.snapshot(multi.voice?.readyId() ?? null),
+      broadcast: {
+        ...multi.broadcast.snapshot(broadcastVoice()?.readyId() ?? null),
+        audioAvailable: !!broadcastVoice(),
+      },
     },
   });
   const clients = new Set<ServerResponse>(),
@@ -67,6 +87,7 @@ export function createStudioServer(
     multi.chats.tick();
     multi.broadcast.tick();
     syncVoice();
+    voiceStudio.tick();
     if (
       !director.busy &&
       director.state === 'IDLE' &&
@@ -84,6 +105,148 @@ export function createStudioServer(
     res.setHeader('X-Content-Type-Options', 'nosniff');
     try {
       const path = new URL(req.url ?? '/', 'http://localhost').pathname;
+      if (path.startsWith('/api/voice/')) {
+        await voiceStudio.ready;
+        const url = new URL(req.url ?? '/', 'http://localhost');
+        if (req.headers.origin) {
+          const origin = new URL(req.headers.origin);
+          if (
+            origin.host !== req.headers.host &&
+            !['localhost', '127.0.0.1', '[::1]'].includes(origin.hostname)
+          )
+            return json(res, 403, { error: 'Origen no permitido' });
+        }
+        if (req.method === 'GET' && path === '/api/voice/state')
+          return json(res, 200, voiceStudio.snapshot());
+        if (req.method === 'GET' && path === '/api/voice/audio') {
+          const token = req.headers['x-voice-session'];
+          if (
+            multi.broadcast.running ||
+            typeof token !== 'string' ||
+            !voiceStudio.authorized(token)
+          )
+            return json(res, 403, { error: 'Reproductor no autorizado' });
+          const audio = voiceStudio.audio(url.searchParams.get('id') ?? '');
+          if (!audio) return json(res, 404, { error: 'Audio no preparado' });
+          res.writeHead(200, {
+            'Content-Type': voiceStudio.audioMime(),
+            'Cache-Control': 'no-store',
+          });
+          res.end(audio);
+          return;
+        }
+        if (req.method !== 'POST' || !['/api/voice/command', '/api/voice/sample'].includes(path))
+          return json(res, 404, { error: 'Ruta de voz no encontrada' });
+        const sample = path === '/api/voice/sample',
+          limit = sample ? 10 * 1024 * 1024 : 16384;
+        if (!sample && !req.headers['content-type']?.startsWith('application/json'))
+          return json(res, 415, { error: 'Se requiere application/json' });
+        const chunks: Buffer[] = [];
+        let size = 0;
+        for await (const chunk of req) {
+          size += Buffer.byteLength(chunk);
+          if (size > limit) return json(res, 413, { error: 'Archivo o comando demasiado grande' });
+          chunks.push(Buffer.from(chunk));
+        }
+        const body = Buffer.concat(chunks);
+        if (sample) {
+          const role = url.searchParams.get('role');
+          if (role !== 'sample' && role !== 'consent')
+            return json(res, 400, { error: 'Tipo de muestra inválido' });
+          await voiceStudio.upload(
+            url.searchParams.get('profileId') ?? '',
+            role,
+            body,
+            (req.headers['content-type'] ?? '').split(';')[0],
+          );
+        } else {
+          const parsed = voiceCommandSchema.safeParse(JSON.parse(body.toString('utf8')));
+          if (!parsed.success) return json(res, 400, { error: 'Comando de voz inválido' });
+          const cmd = parsed.data;
+          switch (cmd.action) {
+            case 'configure': {
+              const before = voiceStudio.settings;
+              await voiceStudio.configure(cmd.patch);
+              if (
+                before.voiceEnabled !== voiceStudio.settings.voiceEnabled ||
+                before.defaultVoiceProfile !== voiceStudio.settings.defaultVoiceProfile ||
+                before.fallbackVoice !== voiceStudio.settings.fallbackVoice
+              )
+                director.command({ type: 'control', action: 'silence' });
+              syncVoice();
+              break;
+            }
+            case 'profile':
+              await voiceStudio.createProfile(cmd.name, cmd.provider);
+              break;
+            case 'create':
+              await voiceStudio.createCustom(cmd.id, cmd.ownVoice);
+              break;
+            case 'verify':
+              await voiceStudio.verify(cmd.id);
+              break;
+            case 'remove':
+              await voiceStudio.remove(cmd.id);
+              director.command({ type: 'control', action: 'silence' });
+              syncVoice();
+              break;
+            case 'sample-delete':
+              voiceStudio.deleteSample(cmd.id, cmd.role);
+              break;
+            case 'claim':
+              if (multi.broadcast.running)
+                return json(res, 409, { error: 'La emisión controla la salida de voz' });
+              return json(res, 200, { token: voiceStudio.claim(cmd.token) });
+            case 'release':
+              if (voiceStudio.authorized(cmd.token) && !multi.broadcast.running)
+                director.command({ type: 'control', action: 'silence' });
+              voiceStudio.release(cmd.token);
+              break;
+            case 'playback':
+              if (multi.broadcast.running || !voiceStudio.authorized(cmd.token))
+                return json(res, 403, { error: 'Reproductor no autorizado' });
+              if (
+                !voiceStudio.acknowledge(
+                  cmd.id,
+                  cmd.event,
+                  cmd.positionMs,
+                  Date.now(),
+                  cmd.durationMs,
+                  cmd.audioLevel,
+                )
+              )
+                return json(res, 409, { error: 'Frase obsoleta' });
+              director.tick();
+              break;
+            case 'stop':
+              director.command({ type: 'control', action: 'silence' });
+              voiceStudio.cancelSpeech();
+              break;
+            case 'speak':
+              if (!voiceStudio.enabled)
+                return json(res, 409, { error: 'Activa la voz en Voice Studio antes de hablar' });
+              syncVoice();
+              director.operator(
+                {
+                  id: cmd.id ?? crypto.randomUUID(),
+                  source: 'Operador · Voice Studio',
+                  text: cmd.text,
+                  emotion: cmd.emotion,
+                  intensity: cmd.intensity,
+                  priority: cmd.priority,
+                  interruptible: cmd.priority !== 'CRITICAL',
+                  timestamp: Date.now(),
+                  matchId: cmd.matchId,
+                  profileId: cmd.profileId,
+                },
+                cmd.interrupt,
+              );
+              break;
+          }
+        }
+        broadcast();
+        return json(res, 200, snapshot());
+      }
       if (req.method === 'POST' && path === '/api/webhooks/kick') {
         const chunks: Buffer[] = [];
         let size = 0;
@@ -101,9 +264,13 @@ export function createStudioServer(
         if (typeof lease !== 'string' || !multi.broadcast.authorized(lease))
           return json(res, 403, { error: 'Sesión de emisión no válida' });
         const id = new URL(req.url!, 'http://localhost').searchParams.get('id') ?? '';
-        const audio = multi.voice?.audio(id);
+        const audio = broadcastVoice()?.audio(id);
         if (!audio) return json(res, 404, { error: 'Audio no preparado' });
-        res.writeHead(200, { 'Content-Type': 'audio/wav', 'Cache-Control': 'no-store' });
+        res.writeHead(200, {
+          'Content-Type':
+            broadcastVoice() instanceof VoiceStudioService ? voiceStudio.audioMime() : 'audio/wav',
+          'Cache-Control': 'no-store',
+        });
         res.end(audio);
         return;
       }
@@ -154,7 +321,7 @@ export function createStudioServer(
             multi.broadcast.enable(command.platform, command.enabled);
             break;
           case 'start': {
-            if (!command.preview && !multi.voice)
+            if (!command.preview && !broadcastVoice())
               return json(res, 409, {
                 error:
                   'Configura una voz capturable en el servidor. BROADCAST_TTS=flite habilita una voz local de prueba',
@@ -176,7 +343,18 @@ export function createStudioServer(
           case 'voice':
             if (!multi.broadcast.authorized(command.sessionId))
               return json(res, 403, { error: 'Sesión no válida' });
-            if (!multi.voice?.acknowledge(command.id, command.event, command.positionMs))
+            if (
+              !(broadcastVoice() instanceof VoiceStudioService
+                ? voiceStudio.acknowledge(
+                    command.id,
+                    command.event,
+                    command.positionMs,
+                    Date.now(),
+                    command.durationMs,
+                    command.audioLevel,
+                  )
+                : broadcastVoice()?.acknowledge(command.id, command.event, command.positionMs))
+            )
               return json(res, 409, { error: 'Frase obsoleta' });
             director.tick();
             break;
@@ -315,6 +493,7 @@ export function createStudioServer(
     live.pause();
     multi.chats.stop();
     multi.broadcast.stop();
+    voiceStudio.stop();
     syncVoice();
     for (const client of clients) client.end();
     server.close();

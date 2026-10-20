@@ -57,6 +57,8 @@ export class BroadcastVoiceProvider implements VoiceProvider {
               `flite=textfile=${textFile}:voice=slt`,
               '-ar',
               '48000',
+              '-af',
+              `atempo=${Math.min(1.2, Math.max(0.7, request.rate ?? 1))}`,
               '-ac',
               '1',
               '-c:a',

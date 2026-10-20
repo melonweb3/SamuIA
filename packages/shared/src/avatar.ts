@@ -47,7 +47,8 @@ export interface AvatarSpeech {
   text: string;
   startedAt: number;
   durationMs: number;
-  source: 'text-simulation' | 'audio-visemes';
+  source: 'text-simulation' | 'audio-visemes' | 'audio-amplitude';
+  audioLevel?: { value: number; receivedAt: number };
   cues: VisemeCue[];
   playback?: 'preparing' | 'playing' | 'paused';
   clock?: { positionMs: number; receivedAt: number };

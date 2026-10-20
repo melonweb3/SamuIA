@@ -3,6 +3,9 @@ import { VideoCompositor } from './VideoCompositor';
 export class BroadcastProducer {
   private context: AudioContext;
   private destination: MediaStreamAudioDestinationNode;
+  private gain: GainNode;
+  private analyser: AnalyserNode;
+  private telemetry: ReturnType<typeof setInterval>;
   private silent: ConstantSourceNode;
   private recorders: MediaRecorder[] = [];
   private streams: MediaStream[] = [];
@@ -24,6 +27,39 @@ export class BroadcastProducer {
     this.state = state;
     this.context = new AudioContext({ sampleRate: 48000 });
     this.destination = this.context.createMediaStreamDestination();
+    this.gain = this.context.createGain();
+    this.analyser = this.context.createAnalyser();
+    this.analyser.fftSize = 256;
+    this.gain.connect(this.analyser);
+    this.analyser.connect(this.destination);
+    this.telemetry = setInterval(() => {
+      if (
+        this.stopped ||
+        !this.audioId ||
+        this.audioPaused ||
+        !this.buffer ||
+        this.state.voice.status !== 'playing'
+      )
+        return;
+      const data = new Uint8Array(this.analyser.fftSize);
+      this.analyser.getByteTimeDomainData(data);
+      const audioLevel = Math.min(
+        1,
+        Math.sqrt(data.reduce((n, v) => n + ((v - 128) / 128) ** 2, 0) / data.length) * 4,
+      );
+      void this.request({
+        action: 'voice',
+        sessionId: this.sessionId,
+        id: this.audioId,
+        event: 'started',
+        positionMs: Math.min(
+          this.buffer.duration * 1000,
+          (this.audioOffset + this.context.currentTime - this.audioStartedAt) * 1000,
+        ),
+        durationMs: this.buffer.duration * 1000,
+        audioLevel,
+      }).catch(() => {});
+    }, 250);
     this.silent = this.context.createConstantSource();
     this.silent.offset.value = 0;
     this.silent.connect(this.destination);
@@ -106,6 +142,7 @@ export class BroadcastProducer {
   }
   update(state: StudioSnapshot) {
     this.state = state;
+    this.gain.gain.value = state.voiceStudio?.settings.volume ?? 1;
     const voice = state.voice;
     if (this.stopped || !this.matches(state)) return;
     if (
@@ -173,7 +210,7 @@ export class BroadcastProducer {
   private playBuffer(id: string, buffer: AudioBuffer, offset: number) {
     const source = this.context.createBufferSource();
     source.buffer = buffer;
-    source.connect(this.destination);
+    source.connect(this.gain);
     this.audioSource = source;
     this.audioStartedAt = this.context.currentTime;
     source.onended = () => {
@@ -203,6 +240,7 @@ export class BroadcastProducer {
   async stop() {
     if (this.stopped) return;
     this.stopped = true;
+    clearInterval(this.telemetry);
     this.clearAudio();
     for (const recorder of this.recorders) if (recorder.state !== 'inactive') recorder.stop();
     for (const stream of this.streams) stream.getTracks().forEach((track) => track.stop());

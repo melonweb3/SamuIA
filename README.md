@@ -8,7 +8,7 @@ Esta versión reconstruye el MVP descrito en la conversación y añade la person
 
 Descarga **[downloads/SamuIA-Live-Studio.html](downloads/SamuIA-Live-Studio.html)** y abre el archivo guardado con un navegador moderno. Contiene React, estilos y los mismos motores dentro de un único HTML; no necesita servidor ni Internet. En GitHub, usa el botón de descargar el archivo: la vista del código HTML no es la aplicación.
 
-**Para actualizar una copia anterior:** vuelve a descargar el HTML; el archivo guardado en tu ordenador no se actualiza al cambiar GitHub. Guárdalo como `SamuIA-multiplataforma-v7.html` y abre ese archivo nuevo. Esta edición muestra **«Multiplataforma v7»** arriba, incluye los cinco fondos originales y permite elegirlos en **Ajustes → Escenario del comentarista → Setup principal**. Incluye cinco composiciones con personaje y habitación unidos en una imagen por escena, sin marco ni fondo blanco. Si no ves ese indicador, estás abriendo otra edición.
+**Para actualizar una copia anterior:** vuelve a descargar el HTML; el archivo guardado en tu ordenador no se actualiza al cambiar GitHub. Guárdalo como `SamuIA-voice-studio-v8.html` y abre ese archivo nuevo. Esta edición muestra **«Voice Studio v8»** arriba, incluye los cinco fondos originales y permite elegirlos en **Ajustes → Escenario del comentarista → Setup principal**. Incluye cinco composiciones con personaje y habitación unidos en una imagen por escena, sin marco ni fondo blanco. Si no ves ese indicador, estás abriendo otra edición.
 
 Cada pestaña tiene su propia sesión. **Recargar el HTML restaura la demo inicial**. Puedes exportar los datos de memoria como JSON desde Memoria (es una exportación para consulta, no un importador de sesiones). La voz predeterminada es simulada sin audio; en Partido de prueba se puede seleccionar TTS local del navegador. El avatar usa las cinco fotografías originales oficiales; los fondos siguen siendo escenarios de demostración.
 
@@ -59,9 +59,9 @@ corepack pnpm dev
 4. Añade o elimina partidos y competiciones. Activa seguimiento, pausa reacciones, prioridades y filtros por encuentro. Amarillas y cambios no generan reacciones por defecto.
 5. Quita el principal y activa Modo carrusel en Ajustes. Cambia por relevancia, eventos recientes, prioridad, favoritos y tiempo desde la visita; no rota por tiempo únicamente. Las preguntas sobre otro partido lo enfocan temporalmente.
 6. En SIMULATION el reloj avanza **un minuto simulado cada 15 segundos reales**, hasta 95. Descanso y Final son manuales; reanuda la segunda parte con su botón. Finalizados y próximos no avanzan.
-7. **Callar** cancela explícitamente; los eventos y otros controles esperan a terminar la frase. El chat se responde manualmente. El comentario editorial automático tiene su propia frecuencia y comparte los límites de intervenciones.
+7. **Callar** cancela explícitamente; los eventos y otros controles esperan a terminar la frase salvo las interrupciones prioritarias habilitadas en Voice Studio. El chat se responde manualmente. El comentario editorial automático tiene su propia frecuencia y comparte los límites de intervenciones.
 
-Los datos se mantienen en memoria del proceso de Node o de la pestaña portátil. Reiniciar el servidor restaura los cuatro encuentros. Varias pestañas conectadas al backend comparten el mismo estudio. El panel muestra SIMULATION o LIVE y el estado de conexión. LIVE requiere configurar un proveedor en el servidor; los datos de cada modo se conservan separados al alternar.
+Los datos de partido se mantienen en memoria del proceso de Node o de la pestaña portátil. Voice Studio persiste su configuración y perfiles en almacenamiento privado del servidor. Reiniciar el servidor restaura los cuatro encuentros. Varias pestañas conectadas al backend comparten el mismo estudio. El panel muestra SIMULATION o LIVE y el estado de conexión. LIVE requiere configurar un proveedor en el servidor; los datos de cada modo se conservan separados al alternar.
 
 ## Personalidad con memoria
 
@@ -106,7 +106,7 @@ packages/football-engine/ MatchManager, estadísticas, probabilidades y radar
 packages/chat-engine/    ChatQueue, prioridad, temas y referencias de equipos
 packages/samuia-brain/   CommentaryEngine, LiveMatchContextService y SamuIABrain
 packages/core/           ReactionDirector, scheduler, cámara y escenas
-packages/voice/          VoiceController y contrato TTS; proveedor simulado
+packages/voice/          VoiceController, ReactionEvent, perfiles y contratos TTS
 packages/live-data/      Contratos, normalización, deduplicación y sesión LIVE
 packages/obs-controller/ Contrato y mock de OBS
 integrations/            Contratos y mocks OpenAI, deportes, Twitch, YouTube, TikTok
@@ -177,3 +177,9 @@ El selector **Modo de datos** alterna entre SIMULATION y LIVE. Configura `.env` 
 Abre **Multiplataforma** para configurar de forma independiente los chats y las salidas de YouTube, Twitch, Kick y TikTok. Hay previsualizaciones 16:9/9:16 y una **Prueba local codificada** que usa FFmpeg sin abrir destinos públicos. Los chats entran al CommunityAnalyzer y al cerebro existente con filtros, identidad y contexto. [Configuración, permisos y límites](docs/multiplataforma.md).
 
 Las emisiones usan únicamente el programa propio de SamuIA. El avatar sigue como fallback estático hasta conectar un renderer con rig; la salida admite sus frames y lip-sync sin cambiar el pipeline. El audio capturable puede probarse con `BROADCAST_TTS=flite` (voz local de prueba). Las claves y tokens se configuran solo en `.env` del servidor. El HTML portátil conserva la simulación y las dos previsualizaciones; las plataformas externas requieren el backend.
+
+## Voice Studio v8
+
+El panel **Voice Studio** añade perfiles personalizados de voz, grabación/subida de muestras, consentimiento, voz principal/fallback, prueba manual y mensajes del operador. Reutiliza el cerebro, `ReactionDirector`, `VoiceProvider` y `VoiceController`; conserva Web Speech, Flite y simulación. Con Voice Studio habilitado, goles y rojas pueden interrumpir una frase normal. La amplitud medida alimenta el mismo controlador de avatar sin modificar las imágenes.
+
+Los adaptadores de **OpenAI** y **ElevenLabs** se configuran exclusivamente en el servidor; sin claves/muestras/permisos no crean ni simulan una voz clonada real. La clonación de Samuel sigue pendiente de una prueba con su propia grabación y cuenta. El HTML portátil explica que este panel necesita backend, y conserva los flujos offline anteriores. [Guía completa: arquitectura anterior, variables, consentimiento, pruebas y límites](docs/voice-studio.md).

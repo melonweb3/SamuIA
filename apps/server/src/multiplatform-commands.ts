@@ -22,6 +22,8 @@ export const multiplatformCommandSchema = z.discriminatedUnion('action', [
       id,
       event: z.enum(['started', 'ended', 'failed']),
       positionMs: z.number().min(0).max(120000).optional(),
+      durationMs: z.number().positive().max(120000).optional(),
+      audioLevel: z.number().min(0).max(1).optional(),
     })
     .strict(),
   z

@@ -1,4 +1,6 @@
 import { MultiplatformAdmin } from './MultiplatformAdmin';
+import { VoiceStudio } from './VoiceStudio';
+import { VoiceStudioPlayer } from './VoiceStudioPlayer';
 import { LiveDataSession } from '../../../packages/live-data/src/index';
 import { LiveStatus } from './LiveStatus';
 import { useEffect, useState } from 'react';
@@ -23,12 +25,13 @@ const pages = [
   'Memoria',
   'Integraciones',
   'Multiplataforma',
+  'Voice Studio',
   'SIMULATION',
   'Partido de prueba',
   'Ajustes',
 ] as const;
 type Page = (typeof pages)[number];
-const icons = ['◫', '⚑', '◎', '☷', '◈', '⌘', '◉', '▷', '⚽', '⚙'];
+const icons = ['◫', '⚑', '◎', '☷', '◈', '⌘', '◉', '♫', '▷', '⚽', '⚙'];
 export function App({ session }: { session?: ReactionDirector }) {
   const [portableMode, setPortableMode] = useState<'SIMULATION' | 'LIVE'>('SIMULATION');
   const [portableLive] = useState(() => (session ? new LiveDataSession(null) : null));
@@ -39,6 +42,12 @@ export function App({ session }: { session?: ReactionDirector }) {
     [state, setState] = useState<StudioSnapshot | null>(null),
     [connected, setConnected] = useState(false),
     [error, setError] = useState('');
+  const [voicePlayer] = useState(() => new VoiceStudioPlayer(setError));
+  useEffect(() => voicePlayer.setSuspended(page === 'Partido de prueba'), [page, voicePlayer]);
+  useEffect(() => {
+    if (state && !session) voicePlayer.update(state);
+  }, [state, session, voicePlayer]);
+  useEffect(() => () => voicePlayer.stop(), [voicePlayer]);
   useEffect(() => {
     if (session) {
       const update = () => {
@@ -179,7 +188,7 @@ export function App({ session }: { session?: ReactionDirector }) {
           <i className={connected ? 'dot' : 'dot offline'} />
           <span>
             {connected ? 'Sistema local conectado' : 'Conectando al servidor'}
-            <small>{state?.dataMode ?? 'SIMULATION'} · Multiplataforma v7</small>
+            <small>{state?.dataMode ?? 'SIMULATION'} · Voice Studio v8</small>
           </span>
         </div>
       </aside>
@@ -201,8 +210,15 @@ export function App({ session }: { session?: ReactionDirector }) {
               <option value="LIVE">LIVE</option>
             </select>
             <span className="local-chip">
-              ⌁ {session ? 'Demo portátil' : 'Entorno local'} · Multiplataforma v7
+              ⌁ {session ? 'Demo portátil' : 'Entorno local'} · Voice Studio v8
             </span>
+            {!session &&
+              page !== 'Partido de prueba' &&
+              state?.voiceStudio?.settings.voiceEnabled && (
+                <button onClick={() => void voicePlayer.enable().catch((e) => setError(e.message))}>
+                  Activar audio
+                </button>
+              )}
             <span className="profile-icon">S</span>
             <span>
               Samu<small>CREADOR</small>
@@ -233,7 +249,11 @@ export function App({ session }: { session?: ReactionDirector }) {
                 ? 'SIMULATION'
                 : (state?.state ?? 'CONECTANDO')}
               <small>
-                {page === 'Partido de prueba' ? 'Prueba de retransmisión' : 'Voz simulada'}
+                {page === 'Partido de prueba'
+                  ? 'Prueba de retransmisión'
+                  : state?.voice.audible
+                    ? `Voz · ${state.voice.currentVoice ?? state.voice.provider}`
+                    : 'Voz simulada'}
               </small>
             </span>
           </div>
@@ -267,6 +287,16 @@ export function App({ session }: { session?: ReactionDirector }) {
               {page === 'Memoria' && <MemoryPanel state={state} send={send} />}{' '}
               {page === 'Ajustes' && <Settings state={state} send={send} />}{' '}
               {page === 'Integraciones' && <Integrations />}
+              {page === 'Voice Studio' && (
+                <VoiceStudio
+                  state={state}
+                  player={voicePlayer}
+                  onState={(next) =>
+                    setState((previous) => (previous && previous.now > next.now ? previous : next))
+                  }
+                  portable={!!session}
+                />
+              )}
               <MultiplatformAdmin
                 state={state}
                 visible={page === 'Multiplataforma'}
@@ -296,8 +326,10 @@ export function App({ session }: { session?: ReactionDirector }) {
                 <span>{DISCLAIMER}</span>
                 <span>● SAMUIA LIVE STUDIO / DEMO LOCAL</span>
                 <span>
-                  {state.dataMode === 'LIVE' ? 'Datos del proveedor LIVE' : 'Datos simulados'} · Sin
-                  emisión a plataformas
+                  {state.dataMode === 'LIVE' ? 'Datos del proveedor LIVE' : 'Datos simulados'} ·{' '}
+                  {state.multiplatform?.broadcast.running
+                    ? 'Señal propia activa'
+                    : 'Sin emisión a plataformas'}
                 </span>
               </footer>
             </>

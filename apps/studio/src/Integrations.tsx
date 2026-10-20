@@ -49,7 +49,7 @@ export function Integrations() {
           [
             'Voz de SamuIA',
             'VoiceProvider',
-            'Controlador TTS independiente; simulación y voz local opcional en Partido de prueba.',
+            'Voice Studio con perfiles OpenAI/ElevenLabs, consentimiento y fallback; voces locales y simulación anteriores conservadas.',
           ],
         ].map(([name, contract, text]) => (
           <Panel

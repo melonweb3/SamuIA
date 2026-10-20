@@ -101,7 +101,15 @@ export function sampleAvatarFrame(base: AvatarAnimationFrame, now: number): Avat
           ? Math.abs(Math.sin(elapsed / 170)) * 0.12 * intensity
           : Math.sin(elapsed / 1300) * 0.012,
     },
-    mouth: { viseme: cue?.viseme ?? 'sil', open: (cue?.weight ?? 0) * Math.max(0, envelope) },
+    mouth: {
+      viseme: cue?.viseme ?? 'sil',
+      open:
+        speech?.source === 'audio-amplitude'
+          ? speaking && speech.audioLevel && now - speech.audioLevel.receivedAt < 600
+            ? speech.audioLevel.value
+            : 0
+          : (cue?.weight ?? 0) * Math.max(0, envelope),
+    },
   };
 }
 export class AvatarAnimationController {
@@ -219,6 +227,12 @@ export class AvatarAnimationController {
       this.base.speech.cues = textVisemes(this.base.speech.text, durationMs);
     this.base.speech.durationMs = durationMs;
     this.base.speech.clock = { positionMs, receivedAt: now };
+    return true;
+  }
+  updateSpeechAmplitude(id: string, level: number, at: number) {
+    if (this.base.speech?.id !== id || !Number.isFinite(level)) return false;
+    this.base.speech.source = 'audio-amplitude';
+    this.base.speech.audioLevel = { value: Math.min(1, Math.max(0, level)), receivedAt: at };
     return true;
   }
   finishSpeech(id: string, now: number): boolean {

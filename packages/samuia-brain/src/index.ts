@@ -10,9 +10,38 @@ import { relatedMatch } from '../../chat-engine/src/index';
 import type { MatchManager } from '../../football-engine/src/index';
 import { CommentaryEngine } from './commentary';
 import { LiveMatchContextService } from './context';
+import { legacyEmotion, type ReactionEvent } from '../../voice/src/contracts';
+import { directiveForAnimation, type AvatarAnimation } from '../../shared/src/index';
 export { CommentaryEngine, LiveMatchContextService };
 export class SamuIABrain {
   constructor(public commentary: CommentaryEngine) {}
+  operator(reaction: ReactionEvent): CommentaryDraft {
+    const clips: Partial<Record<ReactionEvent['emotion'], AvatarAnimation>> = {
+      celebrating: 'goal',
+      happy: 'happy',
+      excited: 'shock',
+      surprised: 'shock',
+      angry: 'angry',
+      frustrated: 'frustrated',
+      laughing: 'laugh',
+      thinking: 'thinking',
+      tense: 'penalty',
+      sad: 'loss',
+    };
+    return {
+      reaction,
+      matchId: reaction.matchId,
+      recallIds: [],
+      sourceIds: [reaction.id],
+      decision: {
+        ...normalDecision(),
+        say: reaction.text,
+        emotion: legacyEmotion[reaction.emotion],
+        energy: Math.round(reaction.intensity * 100),
+        avatar: directiveForAnimation(clips[reaction.emotion] ?? 'talking', reaction.intensity),
+      },
+    };
+  }
   respond(
     message: ChatMessage,
     manager: MatchManager,

@@ -76,7 +76,7 @@ export class SportsReactionScheduler {
     this.sportsEventQueue = this.sportsEventQueue.slice(0, 100);
     return true;
   }
-  take(manager: MatchManager, settings: StudioSettings, now: number) {
+  take(manager: MatchManager, settings: StudioSettings, now: number, criticalOnly = false) {
     this.recentReactions = this.recentReactions.filter((t) => now - t < 60000);
     this.sportsEventQueue = this.sportsEventQueue.filter((i) => {
       const m = manager.activeMatches.find((m) => m.id === i.event.matchId);
@@ -98,7 +98,8 @@ export class SportsReactionScheduler {
       return;
     const index = this.sportsEventQueue.findIndex(
       (i) =>
-        weights[i.event.type] > 20 || now - (i.event.live?.receivedAt ?? i.event.timestamp) >= 3000,
+        ((!criticalOnly || ['goal', 'red'].includes(i.event.type)) && weights[i.event.type] > 20) ||
+        now - (i.event.live?.receivedAt ?? i.event.timestamp) >= 3000,
     );
     if (index < 0) return;
     const [item] = this.sportsEventQueue.splice(index, 1);
