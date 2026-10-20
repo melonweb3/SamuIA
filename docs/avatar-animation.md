@@ -1,4 +1,4 @@
-# Avatar Animation · SIMULATION v3
+# Avatar Animation · contrato y evolución v9
 
 La instrucción del usuario sobre avatar animado sustituye la restricción anterior de diseñar el personaje como una composición estática. Las imágenes siguen siendo referencias oficiales y fallback; no son el contrato del personaje. No se han modificado sus bytes, identidad ni vestuario.
 
@@ -49,7 +49,7 @@ Los borradores antiguos sin `avatar` se normalizan desde emoción y gesto. Esto 
 - `mouth`: visema y apertura 0–1; `speech`: ID de frase, texto, reloj y cues.
 - `transitions`: últimas 30 transiciones; ayuda a verificar clips y cancelaciones.
 
-El fallback de imágenes **no tiene rig**, parpadeo facial ni deformación de boca/ojos. Muestra las composiciones completas y quietas. Los retratos originales se consultan en un visor separado sin montaje sobre la habitación. Se ha eliminado el balanceo y el zoom del retrato. Sus capacidades de rig están marcadas como falsas. SIMULATION muestra los movimientos pendientes como señales y medidores; no se presenta como un avatar 3D terminado. No se mueve toda la habitación para fingir movimiento del personaje.
+En v9, la presentación integrada usa `OfficialImageRenderer`: parpadeo, boca por capas oficiales y una malla local de cabeza/torso, conservando el encuadre, fondo y micrófono. El visor de retratos sigue estático. El controlador existente incorpora `ReactionLibrary` y estado visual; no hay rig 3D ni mirada ocular implementada. Los modos avanzados indican fallback 2D. Consulta [Avatar Engine v9](avatar-engine-v9.md) para calibración, capacidades, privacidad y límites.
 
 ## Conectar un modelo 2D o 3D
 

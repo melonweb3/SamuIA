@@ -20,7 +20,7 @@ Durante `preparing` y `paused`, el avatar recibe el reloj detenido y la boca cer
 
 Un proveedor con alineación real puede emitir `timing(positionMs, durationMs, cues, now)`; se validan tiempos, duración, visemas y pesos antes de entregarlos al avatar. Las señales usan los visemas `sil`, `aa`, `E`, `O`, `M`. El puente previo `updateVoiceTiming` / `voiceEnded` sigue disponible para integraciones existentes y rechaza IDs obsoletos.
 
-SpeechSynthesis no proporciona alineación fonética real. En ese adaptador las señales se estiman a partir del texto y el inicio, pausa y final de reproducción; la interfaz lo indica. La voz seleccionada no es todavía una voz personalizada de SamuIA. Los PNG oficiales permanecen quietos: las señales se entregarán a un renderer 2D/3D mediante el contrato existente de `AvatarRendererAdapter`. No se mueve la escena ni se simula una boca editando la foto.
+SpeechSynthesis no proporciona alineación fonética real. En ese adaptador las señales se estiman a partir del texto y el inicio, pausa y final de reproducción; la interfaz lo indica. La voz seleccionada no es todavía una voz personalizada de SamuIA. En v9 las señales llegan al renderer 2D de la imagen oficial: boca por capas en ejecución, parpadeo y movimiento localizado, sin editar los archivos ni desplazar la escena. El audio medible usa amplitud real; Web Speech conserva la estimación por texto. Consulta [Avatar Engine v9](avatar-engine-v9.md).
 
 ## Prueba
 

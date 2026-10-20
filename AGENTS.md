@@ -1,5 +1,7 @@
 # SamuIA: identidad visual del personaje principal
 
+- Instrucción explícita posterior v9: el usuario autoriza animar en ejecución la imagen oficial con un renderer 2D localizado, boca por capas/estados, parpadeo y micromovimientos. Esta petición sustituye la restricción anterior de que solo un rig pueda producir movimiento. Conserva intactos los PNG/ZIP y la identidad; no muevas toda la habitación ni el micrófono para fingir animación. Los vídeos son referencias internas, nunca la salida visual. Consulta `docs/avatar-engine-v9.md`.
+
 Antes de crear, editar o integrar avatares, expresiones, escenas o assets del comentarista, lee [la referencia oficial](assets/reference/README.md) y [su manifiesto](assets/reference/identity.json).
 
 - Las cinco vistas aportadas por el usuario son **el mismo personaje SamuIA**, no cinco personajes o diseños alternativos.

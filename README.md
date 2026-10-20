@@ -1,6 +1,6 @@
 # SamuIA Live Studio · 0.2
 
-Estudio local de un streamer futbolero con personalidad configurable y memoria por partido. TypeScript + React + Node.js + pnpm, con cuatro encuentros simultáneos, chat, radar, cola de reacciones y director visual. **SIMULATION funciona sin claves. LIVE admite datos normalizados mediante HTTP JSON o API-Football, con configuración privada en el servidor. Comentarios del motor local, avatar oficial como fallback estático y voz desacoplada.**
+Estudio local de un streamer futbolero con personalidad configurable y memoria por partido. TypeScript + React + Node.js + pnpm, con cuatro encuentros simultáneos, chat, radar, cola de reacciones y director visual. **SIMULATION funciona sin claves. LIVE admite datos normalizados mediante HTTP JSON o API-Football, con configuración privada en el servidor. Comentarios del motor local, avatar oficial con animación 2D localizada y voz desacoplada.**
 
 Esta versión reconstruye el MVP descrito en la conversación y añade la personalidad con memoria. No es una recuperación binaria del archivo anterior.
 
@@ -8,9 +8,9 @@ Esta versión reconstruye el MVP descrito en la conversación y añade la person
 
 Descarga **[downloads/SamuIA-Live-Studio.html](downloads/SamuIA-Live-Studio.html)** y abre el archivo guardado con un navegador moderno. Contiene React, estilos y los mismos motores dentro de un único HTML; no necesita servidor ni Internet. En GitHub, usa el botón de descargar el archivo: la vista del código HTML no es la aplicación.
 
-**Para actualizar una copia anterior:** vuelve a descargar el HTML; el archivo guardado en tu ordenador no se actualiza al cambiar GitHub. Guárdalo como `SamuIA-voice-studio-v8.html` y abre ese archivo nuevo. Esta edición muestra **«Voice Studio v8»** arriba, incluye los cinco fondos originales y permite elegirlos en **Ajustes → Escenario del comentarista → Setup principal**. Incluye cinco composiciones con personaje y habitación unidos en una imagen por escena, sin marco ni fondo blanco. Si no ves ese indicador, estás abriendo otra edición.
+**Para actualizar una copia anterior:** vuelve a descargar el HTML; el archivo guardado en tu ordenador no se actualiza al cambiar GitHub. Guárdalo como `SamuIA-avatar-engine-v9.html` y abre ese archivo nuevo. Esta edición muestra **«Avatar Engine v9»** arriba, incluye los cinco fondos originales y permite elegirlos en **Ajustes → Escenario del comentarista → Setup principal**. Incluye cinco composiciones con personaje y habitación unidos en una imagen por escena, sin marco ni fondo blanco. Si no ves ese indicador, estás abriendo otra edición.
 
-Cada pestaña tiene su propia sesión. **Recargar el HTML restaura la demo inicial**. Puedes exportar los datos de memoria como JSON desde Memoria (es una exportación para consulta, no un importador de sesiones). La voz predeterminada es simulada sin audio; en Partido de prueba se puede seleccionar TTS local del navegador. El avatar usa las cinco fotografías originales oficiales; los fondos siguen siendo escenarios de demostración.
+Cada pestaña tiene su propia sesión. **Recargar el HTML restaura los partidos de la demo**; los ajustes/recetas del avatar se conservan en localStorage y las referencias de vídeo en IndexedDB. Puedes exportar los datos de memoria como JSON desde Memoria (es una exportación para consulta, no un importador de sesiones). La voz predeterminada es simulada sin audio; en Partido de prueba se puede seleccionar TTS local del navegador. El avatar usa las cinco fotografías originales oficiales; los fondos siguen siendo escenarios de demostración.
 
 ## Desarrollo
 
@@ -154,19 +154,19 @@ Guarda el código con Git y envíalo al repositorio remoto; los archivos tempora
 
 ### Setup del comentarista
 
-En **Ajustes → Escenario del comentarista** puedes elegir entre las cinco escenas originales, usar cambios automáticos según la escena y activar los gráficos del partido o la iluminación reactiva. La base principal es la referencia 05: madera, doble monitor, micrófono de brazo, plantas, recuerdos futbolísticos gallegos y luz azul/cálida. El marcador, el minuto y la competición siguen el partido en foco; la decoración fotografiada permanece fija. El avatar y la habitación están integrados en un único PNG por escena, con pose neutra fija. Los retratos originales siguen disponibles en un visor de referencia separado, sin superponerlos a la habitación. Las cinco escenas también están incluidas en el HTML sin conexión. Consulta el [análisis y archivo de referencias](assets/reference/scenes/README.md).
+En **Ajustes → Escenario del comentarista** puedes elegir entre las cinco escenas originales, usar cambios automáticos según la escena y activar los gráficos del partido o la iluminación reactiva. La base principal es la referencia 05: madera, doble monitor, micrófono de brazo, plantas, recuerdos futbolísticos gallegos y luz azul/cálida. El marcador, el minuto y la competición siguen el partido en foco; la decoración fotografiada permanece fija. El avatar y la habitación están integrados en un único PNG por escena, con pose base neutra; el renderer v9 anima regiones del personaje en ejecución. Los retratos originales siguen disponibles en un visor de referencia separado, sin superponerlos a la habitación. Las cinco escenas también están incluidas en el HTML sin conexión. Consulta el [análisis y archivo de referencias](assets/reference/scenes/README.md).
 
 ### Avatar animado · arquitectura y simulación
 
 Abre **SIMULATION** para probar los 13 estados de animación, mirada, intensidad, texto hablado y señales de cabeza, cuerpo, parpadeo y boca. Los eventos del CommentaryEngine envían texto, emoción e instrucciones de animación al **AvatarAnimationController**, independiente del renderer y de las imágenes.
 
-Las imágenes actuales son fallbacks visuales; todavía no hay rig 2D/3D ni voz real. La sincronización de boca se simula por texto y puede sustituirse por visemas con tiempos de audio. El host permite inyectar un renderer de avatar sin cambiar el motor editorial. Consulta [el contrato y la integración](docs/avatar-animation.md).
+Avatar Engine v9 añade movimiento 2D localizado, parpadeo y boca por capas oficiales. La amplitud medida conduce la boca con audio; simulación y Web Speech usan estimación por texto. No hay rig facial 3D ni alineación fonética. El host permite inyectar otro renderer sin cambiar el motor editorial. Consulta [el contrato y la integración](docs/avatar-animation.md).
 
 La edición v3.1 conserva el encuadre completo de los escenarios, usa la misma presentación en Dashboard y SIMULATION y elimina el balanceo de fotografías. Los retratos originales tienen un visor de referencia separado para evitar tapar el mobiliario con un montaje incorrecto.
 
 ### Partido de prueba end-to-end
 
-Abre **Partido de prueba → Reproducir partido completo**. El guion local de 24 pasos recorre un Celta–Dépor desde el inicio hasta el final 2–1, con comentarios, comunidad, tarjetas, VAR, penalti, cambios, descanso y predicciones verificadas (una acertada y otra fallida). Puedes pausar, avanzar paso a paso, escribir mensajes y usar controles manuales. No altera los partidos del estudio ni necesita API externa. Los PNG son referencias estáticas; el panel de voz permite simular o usar una voz local instalada, pausar, reanudar y silenciar. El diagnóstico muestra todo el flujo y los errores de reproducción. Consulta [el contrato TTS desacoplado](docs/voz.md). Consulta [el recorrido y la arquitectura reutilizada](docs/partido-prueba.md).
+Abre **Partido de prueba → Reproducir partido completo**. El guion local de 24 pasos recorre un Celta–Dépor desde el inicio hasta el final 2–1, con comentarios, comunidad, tarjetas, VAR, penalti, cambios, descanso y predicciones verificadas (una acertada y otra fallida). Puedes pausar, avanzar paso a paso, escribir mensajes y usar controles manuales. No altera los partidos del estudio ni necesita API externa. Los PNG se conservan intactos y el renderer anima el personaje en ejecución; el panel de voz permite simular o usar una voz local instalada, pausar, reanudar y silenciar. El diagnóstico muestra todo el flujo y los errores de reproducción. Consulta [el contrato TTS desacoplado](docs/voz.md). Consulta [el recorrido y la arquitectura reutilizada](docs/partido-prueba.md).
 
 ## Datos reales · LIVE
 
@@ -176,10 +176,18 @@ El selector **Modo de datos** alterna entre SIMULATION y LIVE. Configura `.env` 
 
 Abre **Multiplataforma** para configurar de forma independiente los chats y las salidas de YouTube, Twitch, Kick y TikTok. Hay previsualizaciones 16:9/9:16 y una **Prueba local codificada** que usa FFmpeg sin abrir destinos públicos. Los chats entran al CommunityAnalyzer y al cerebro existente con filtros, identidad y contexto. [Configuración, permisos y límites](docs/multiplataforma.md).
 
-Las emisiones usan únicamente el programa propio de SamuIA. El avatar sigue como fallback estático hasta conectar un renderer con rig; la salida admite sus frames y lip-sync sin cambiar el pipeline. El audio capturable puede probarse con `BROADCAST_TTS=flite` (voz local de prueba). Las claves y tokens se configuran solo en `.env` del servidor. El HTML portátil conserva la simulación y las dos previsualizaciones; las plataformas externas requieren el backend.
+Las emisiones usan únicamente el programa propio de SamuIA. El avatar 2D y la preview comparten renderer con el compositor de emisión; se conservan los puertos para un rig futuro. El audio capturable puede probarse con `BROADCAST_TTS=flite` (voz local de prueba). Las claves y tokens se configuran solo en `.env` del servidor. El HTML portátil conserva la simulación y las dos previsualizaciones; las plataformas externas requieren el backend.
 
 ## Voice Studio v8
 
 El panel **Voice Studio** añade perfiles personalizados de voz, grabación/subida de muestras, consentimiento, voz principal/fallback, prueba manual y mensajes del operador. Reutiliza el cerebro, `ReactionDirector`, `VoiceProvider` y `VoiceController`; conserva Web Speech, Flite y simulación. Con Voice Studio habilitado, goles y rojas pueden interrumpir una frase normal. La amplitud medida alimenta el mismo controlador de avatar sin modificar las imágenes.
 
 Los adaptadores de **OpenAI** y **ElevenLabs** se configuran exclusivamente en el servidor; sin claves/muestras/permisos no crean ni simulan una voz clonada real. La clonación de Samuel sigue pendiente de una prueba con su propia grabación y cuenta. El HTML portátil explica que este panel necesita backend, y conserva los flujos offline anteriores. [Guía completa: arquitectura anterior, variables, consentimiento, pruebas y límites](docs/voice-studio.md).
+
+## Avatar Engine v9 / Reaction Studio
+
+Abre **Avatar / Reaction Studio**, escribe «GOOOOOOOL DEL CELTA!», elige emoción `celebrating` e intensidad 1 y pulsa **SPEAK + REACT**. Puedes usar simulación sin sonido, voz local del navegador, Flite en el servidor o un tono de prueba en el portátil. **REACT ONLY** ejecuta una reacción sin TTS; **STOP ANIMATION** y **RESET TO IDLE** controlan solo el movimiento. Para cancelar también el audio, usa **Callar voz y avatar**.
+
+Incluye 25 recetas 2D, variantes con cooldown y selección sin repetición inmediata, ajustes persistentes y biblioteca privada de vídeos de referencia. Los vídeos se guardan y clasifican; **todavía no se extraen sus gestos y nunca se muestran como avatar o salida de emisión**. Las cinco composiciones y los originales conservan sus bytes. El fondo, escritorio y micrófono permanecen fijos; cabeza, torso, párpados y boca tienen movimiento localizado. No equivale a un rig facial completo ni a mocap.
+
+La prueba manual y la biblioteca funcionan sin backend en el HTML actualizado; Flite, proveedores remotos, LIVE y emisión externa requieren el servidor. [Guía v9: arquitectura, archivos, pruebas, almacenamiento, uso manual, límites y siguientes fases](docs/avatar-engine-v9.md).

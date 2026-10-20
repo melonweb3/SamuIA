@@ -235,6 +235,7 @@ export interface AICommentatorProfile {
 }
 export type StudioBackdrop = 'auto' | '01' | '02' | '03' | '04' | '05';
 export interface StudioSettings {
+  avatarEngine?: import('../../avatar-engine/src/contracts').AvatarEngineSettings;
   studioComposition: 'integrated' | 'portrait';
   studioBackdrop: StudioBackdrop;
   studioGraphics: boolean;
@@ -296,6 +297,9 @@ export interface CommentaryDraft {
   sourceIds: string[];
 }
 export interface StudioSnapshot {
+  reactionLibrary?: import('../../avatar-engine/src/contracts').ReactionAsset[];
+  motionReferences?: import('../../avatar-engine/src/contracts').MotionReference[];
+  avatarStorageError?: string | null;
   voiceStudio?: import('../../voice/src/contracts').VoiceStudioState;
   community: CommunitySummary;
   multiplatform?: MultiplatformState;
@@ -334,6 +338,18 @@ export interface StudioSnapshot {
   now: number;
 }
 export type StudioCommand =
+  | {
+      type: 'avatar-settings';
+      patch: Partial<import('../../avatar-engine/src/contracts').AvatarEngineSettings>;
+    }
+  | { type: 'reaction-upsert'; asset: import('../../avatar-engine/src/contracts').ReactionAsset }
+  | { type: 'reaction-remove'; id: string }
+  | { type: 'avatar-stop'; reset: boolean }
+  | {
+      type: 'avatar-manual';
+      reaction: import('../../voice/src/contracts').ReactionEvent;
+      interrupt: boolean;
+    }
   | { type: 'data-mode'; mode: DataMode }
   | {
       type: 'avatar-simulate';

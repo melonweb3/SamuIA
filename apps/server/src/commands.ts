@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import { eventTypes, avatarAnimations, gazeTargets } from '../../../packages/shared/src/index';
 import { officialAvatarFiles } from '../../../packages/core/src/visual';
+import {
+  avatarSettingsSchema,
+  reactionAssetSchema,
+  manualAvatarSchema,
+} from '../../../packages/avatar-engine/src/schemas';
+import { voiceEmotions, speechPriorities } from '../../../packages/voice/src/contracts';
 const id = z.string().min(1).max(1024),
   name = z.string().trim().min(1).max(80),
   level = z.number().int().min(0).max(100);
@@ -67,6 +73,31 @@ const profile = z
   .partial()
   .strict();
 export const commandSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('avatar-settings'), patch: avatarSettingsSchema.partial() }).strict(),
+  z.object({ type: z.literal('reaction-upsert'), asset: reactionAssetSchema }).strict(),
+  z.object({ type: z.literal('reaction-remove'), id }).strict(),
+  z.object({ type: z.literal('avatar-stop'), reset: z.boolean() }).strict(),
+  z
+    .object({
+      type: z.literal('avatar-manual'),
+      interrupt: z.boolean(),
+      reaction: z
+        .object({
+          id: z.string().min(1).max(128),
+          source: z.literal('Operador · Reaction Studio'),
+          matchId: id.optional(),
+          text: z.string().max(2000),
+          emotion: z.enum(voiceEmotions),
+          intensity: z.number().min(0).max(1),
+          priority: z.enum(speechPriorities),
+          interruptible: z.boolean(),
+          timestamp: z.number(),
+          profileId: id.optional(),
+          ...manualAvatarSchema.shape,
+        })
+        .strict(),
+    })
+    .strict(),
   z.object({ type: z.literal('data-mode'), mode: z.enum(['SIMULATION', 'LIVE']) }).strict(),
   z
     .object({

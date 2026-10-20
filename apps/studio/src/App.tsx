@@ -1,6 +1,8 @@
 import { MultiplatformAdmin } from './MultiplatformAdmin';
 import { VoiceStudio } from './VoiceStudio';
 import { VoiceStudioPlayer } from './VoiceStudioPlayer';
+import { ReactionStudio } from './ReactionStudio';
+import { loadAvatarPreferences, saveAvatarPreferences } from './avatar-persistence';
 import { LiveDataSession } from '../../../packages/live-data/src/index';
 import { LiveStatus } from './LiveStatus';
 import { useEffect, useState } from 'react';
@@ -26,12 +28,13 @@ const pages = [
   'Integraciones',
   'Multiplataforma',
   'Voice Studio',
+  'Avatar / Reaction Studio',
   'SIMULATION',
   'Partido de prueba',
   'Ajustes',
 ] as const;
 type Page = (typeof pages)[number];
-const icons = ['◫', '⚑', '◎', '☷', '◈', '⌘', '◉', '♫', '▷', '⚽', '⚙'];
+const icons = ['◫', '⚑', '◎', '☷', '◈', '⌘', '◉', '♫', '◌', '▷', '⚽', '⚙'];
 export function App({ session }: { session?: ReactionDirector }) {
   const [portableMode, setPortableMode] = useState<'SIMULATION' | 'LIVE'>('SIMULATION');
   const [portableLive] = useState(() => (session ? new LiveDataSession(null) : null));
@@ -43,6 +46,16 @@ export function App({ session }: { session?: ReactionDirector }) {
     [connected, setConnected] = useState(false),
     [error, setError] = useState('');
   const [voicePlayer] = useState(() => new VoiceStudioPlayer(setError));
+  useEffect(() => {
+    if (session)
+      try {
+        loadAvatarPreferences(session);
+      } catch {
+        setError(
+          'No se pudieron cargar los ajustes locales del avatar; se mantienen los valores de sesión',
+        );
+      }
+  }, [session]);
   useEffect(() => voicePlayer.setSuspended(page === 'Partido de prueba'), [page, voicePlayer]);
   useEffect(() => {
     if (state && !session) voicePlayer.update(state);
@@ -116,6 +129,8 @@ export function App({ session }: { session?: ReactionDirector }) {
             'LIVE necesita el servidor configurado; cambia a SIMULATION para probar sin conexión',
           );
         session.command(command);
+        if (['avatar-settings', 'reaction-upsert', 'reaction-remove'].includes(command.type))
+          saveAvatarPreferences(session);
         setState(session.snapshot());
         return true;
       }
@@ -188,7 +203,7 @@ export function App({ session }: { session?: ReactionDirector }) {
           <i className={connected ? 'dot' : 'dot offline'} />
           <span>
             {connected ? 'Sistema local conectado' : 'Conectando al servidor'}
-            <small>{state?.dataMode ?? 'SIMULATION'} · Voice Studio v8</small>
+            <small>{state?.dataMode ?? 'SIMULATION'} · Avatar Engine v9</small>
           </span>
         </div>
       </aside>
@@ -210,7 +225,7 @@ export function App({ session }: { session?: ReactionDirector }) {
               <option value="LIVE">LIVE</option>
             </select>
             <span className="local-chip">
-              ⌁ {session ? 'Demo portátil' : 'Entorno local'} · Voice Studio v8
+              ⌁ {session ? 'Demo portátil' : 'Entorno local'} · Avatar Engine v9
             </span>
             {!session &&
               page !== 'Partido de prueba' &&
@@ -295,6 +310,17 @@ export function App({ session }: { session?: ReactionDirector }) {
                     setState((previous) => (previous && previous.now > next.now ? previous : next))
                   }
                   portable={!!session}
+                />
+              )}
+              {page === 'Avatar / Reaction Studio' && (
+                <ReactionStudio
+                  state={state}
+                  send={send}
+                  session={session}
+                  player={voicePlayer}
+                  onState={(next) =>
+                    setState((previous) => (previous && previous.now > next.now ? previous : next))
+                  }
                 />
               )}
               <MultiplatformAdmin

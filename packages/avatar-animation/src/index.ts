@@ -6,6 +6,15 @@ import {
   type Viseme,
   type VisemeCue,
 } from '../../shared/src/index';
+import {
+  ReactionLibrary,
+  defaultAvatarSettings,
+  makeAvatarEngine,
+  sampleAvatarEngine,
+  kindForReaction,
+  type AvatarEngineSettings,
+} from '../../avatar-engine/src/index';
+import type { ReactionEvent } from '../../voice/src/contracts';
 
 /** Adapter contract contains no portrait filenames or model-specific SDK types. */
 export interface AvatarRendererAdapter {
@@ -82,7 +91,7 @@ export function sampleAvatarFrame(base: AvatarAnimationFrame, now: number): Avat
     ? speech?.cues.find((c) => position >= c.atMs && position < c.atMs + c.durationMs)
     : undefined;
   const envelope = cue ? Math.sin((Math.PI * (position - cue.atMs)) / cue.durationMs) : 0;
-  return {
+  const result: AvatarAnimationFrame = {
     ...base,
     sampledAt: now,
     animation,
@@ -111,8 +120,12 @@ export function sampleAvatarFrame(base: AvatarAnimationFrame, now: number): Avat
           : (cue?.weight ?? 0) * Math.max(0, envelope),
     },
   };
+  result.engine = sampleAvatarEngine(result, position, now);
+  return result;
 }
 export class AvatarAnimationController {
+  readonly library = new ReactionLibrary();
+  settings: AvatarEngineSettings = structuredClone(defaultAvatarSettings);
   private sequence = 0;
   private base: AvatarAnimationFrame;
   private lastReported: AvatarAnimationFrame['animation'] = 'idle';
@@ -135,12 +148,14 @@ export class AvatarAnimationController {
       speaking: false,
       speech: null,
       transitions: [],
+      engine: makeAvatarEngine(),
     };
   }
   play(
     directive: AvatarDirective,
     now: number,
     speech: { id: string; text: string; durationMs: number } | null = null,
+    reaction?: ReactionEvent,
   ) {
     // Replacing the clip also cancels every cue from the previous utterance.
     this.sequence++;
@@ -168,12 +183,57 @@ export class AvatarAnimationController {
             }
           : null,
     };
+    const kind = kindForReaction(reaction, this.base);
+    const selected = this.library.choose(kind, directive.intensity, this.settings, now, {
+      assetId: reaction?.assetId,
+      critical: reaction?.priority === 'CRITICAL',
+      manual: reaction?.source.startsWith('Operador'),
+    });
+    const emotion =
+      (
+        {
+          celebrating_big: 'celebrating',
+          goal_against: 'frustrated',
+          penalty: 'tense',
+          disbelief: 'surprised',
+          talking: 'neutral',
+        } as const
+      )[kind as 'celebrating_big' | 'goal_against' | 'penalty' | 'disbelief' | 'talking'] ?? kind;
+    this.base.engine = makeAvatarEngine(
+      this.settings,
+      selected.asset,
+      reaction ?? {
+        id: `clip-${this.sequence}`,
+        source: 'controller',
+        text: speech?.text ?? '',
+        emotion: emotion as ReactionEvent['emotion'],
+        intensity: directive.intensity,
+        priority: 'NORMAL',
+        interruptible: true,
+        timestamp: now,
+      },
+      selected.reason,
+    );
+    if (reaction && (reaction.reactOnly || !['idle', 'talking'].includes(directive.animation)))
+      this.base.reactionUntil = now + (selected.asset?.durationMs ?? Math.max(hold, 3000));
     this.lookAt(directive.gaze);
     this.frame(now);
   }
   lookAt(target: GazeTarget) {
     const [x, y] = gazePositions[target];
     this.base.gaze = { target, x, y };
+  }
+  configure(patch: Partial<AvatarEngineSettings>) {
+    this.settings = { ...this.settings, ...patch };
+    if (this.base.engine)
+      this.base.engine = {
+        ...this.base.engine,
+        settings: structuredClone(this.settings),
+        avatarEnabled: this.settings.avatarEnabled,
+        lipSyncEnabled: this.settings.lipSyncEnabled,
+        renderMode: this.settings.defaultRenderMode === 'static' ? 'static' : 'animated-2d',
+        requestedRenderMode: this.settings.defaultRenderMode,
+      };
   }
   /** A real voice bridge supplies measured playback position + visemes. Reject late callbacks. */
   updateSpeechTiming(

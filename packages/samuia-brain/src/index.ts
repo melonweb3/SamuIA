@@ -12,6 +12,7 @@ import { CommentaryEngine } from './commentary';
 import { LiveMatchContextService } from './context';
 import { legacyEmotion, type ReactionEvent } from '../../voice/src/contracts';
 import { directiveForAnimation, type AvatarAnimation } from '../../shared/src/index';
+import { stateAnimation } from '../../avatar-engine/src/contracts';
 export { CommentaryEngine, LiveMatchContextService };
 export class SamuIABrain {
   constructor(public commentary: CommentaryEngine) {}
@@ -38,7 +39,13 @@ export class SamuIABrain {
         say: reaction.text,
         emotion: legacyEmotion[reaction.emotion],
         energy: Math.round(reaction.intensity * 100),
-        avatar: directiveForAnimation(clips[reaction.emotion] ?? 'talking', reaction.intensity),
+        avatar: directiveForAnimation(
+          reaction.animationOverride ??
+            (reaction.avatarState
+              ? stateAnimation[reaction.avatarState]
+              : (clips[reaction.emotion] ?? 'talking')),
+          reaction.intensity,
+        ),
       },
     };
   }

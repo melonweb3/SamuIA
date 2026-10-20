@@ -32,10 +32,10 @@ export function AvatarSimulation({ state, send }: ViewProps) {
       <div className="info-banner">
         <b>SIMULATION · AvatarAnimationController</b>
         <p>
-          Prueba las señales que recibirá el avatar 2D/3D. La referencia permanece quieta: no hay
-          rig facial ni audio real. Los medidores verifican el controlador, no una animación de la
-          fotografía. Las pruebas manuales interrumpen la frase actual; no añaden goles ni
-          resultados.
+          Prueba las señales del controlador y la animación 2D de la imagen oficial. El escenario
+          permanece fijo. La simulación no produce audio y los tiempos de boca son aproximados;
+          Voice Studio permite conectar voz local o personalizada. Las pruebas manuales no añaden
+          goles ni resultados.
         </p>
       </div>
       <div className="two-col">
@@ -74,8 +74,8 @@ export function AvatarSimulation({ state, send }: ViewProps) {
                   : 'En espera · boca cerrada'}
               </span>
               <small>
-                El parpadeo, boca y mirada son señales de control. Un renderer compatible las
-                convertirá en movimientos del personaje.
+                El renderer 2D aplica boca y parpadeo al personaje oficial. El contrato conserva
+                cabeza, cuerpo y mirada para renderers de mayor fidelidad.
               </small>
             </div>
           </Panel>

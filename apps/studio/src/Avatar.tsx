@@ -9,6 +9,7 @@ import {
 import { avatarSource } from './avatar-source';
 import { StudioScenery, StudioMatchGraphics } from './StudioScenery';
 import { AvatarRendererHost, useAvatarRendererFactory } from './AvatarRendererHost';
+import { OfficialAvatarCanvas } from './OfficialAvatarCanvas';
 const fallbackEmotions: Record<AvatarExpression, Emotion> = {
   neutral: 'neutral',
   happy: 'sonrisa',
@@ -54,7 +55,10 @@ export function Avatar({ state }: { state: StudioSnapshot }) {
             {factory
               ? 'AVATAR CONECTADO'
               : integrated
-                ? 'REFERENCIA INTEGRADA · ESTÁTICA'
+                ? state.animation.engine?.renderMode === 'animated-2d' &&
+                  state.animation.engine.avatarEnabled
+                  ? 'AVATAR OFICIAL · ANIMACIÓN 2D'
+                  : 'REFERENCIA INTEGRADA · ESTÁTICA'
                 : 'RETRATO DE REFERENCIA'}
           </span>
           <span className="stage-tag">
@@ -62,6 +66,7 @@ export function Avatar({ state }: { state: StudioSnapshot }) {
           </span>
         </div>
         <AvatarRendererHost frame={state.animation}>
+          {integrated && <OfficialAvatarCanvas state={state} />}
           {!integrated && (
             <div className="avatar-frame avatar-reference-frame">
               {unavailable ? (
@@ -85,11 +90,19 @@ export function Avatar({ state }: { state: StudioSnapshot }) {
         </AvatarRendererHost>
         <div className="stage-bottom">
           <span>
-            ▂ ▄ ▆ ▄ ▂ {state.avatar.speaking ? 'Reproducción simulada' : 'Listo para la siguiente'}
+            ▂ ▄ ▆ ▄ ▂{' '}
+            {state.avatar.speaking
+              ? state.voice.audible
+                ? 'Hablando · audio'
+                : 'Hablando · simulación'
+              : 'Listo para la siguiente'}
           </span>
           <small>
             {integrated
-              ? 'ESCENARIO Y PERSONAJE · IMAGEN ESTÁTICA'
+              ? state.animation.engine?.renderMode === 'animated-2d' &&
+                state.animation.engine.avatarEnabled
+                ? 'PERSONAJE ANIMADO · ESCENARIO FIJO'
+                : 'ESCENARIO Y PERSONAJE · IMAGEN ESTÁTICA'
               : unavailable
                 ? 'IMAGEN NO DISPONIBLE'
                 : officialAvatarDescriptions[file].toUpperCase()}

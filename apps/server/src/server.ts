@@ -11,10 +11,12 @@ import { ReactionDirector } from '../../../packages/core/src/index';
 import { commandSchema } from './commands';
 import { VoiceStudioService } from './voice-studio';
 import { voiceCommandSchema } from './voice-commands';
+import { ReactionStudioService } from './reaction-studio';
 export function createStudioServer(
   options: {
     live?: LiveDataSession;
     voiceStudio?: VoiceStudioService;
+    reactionStudio?: ReactionStudioService;
     multiplatformFactory?: (
       receive: (message: ExternalChatMessage) => void,
     ) => ReturnType<typeof createMultiplatform>;
@@ -24,6 +26,12 @@ export function createStudioServer(
   const live = options.live ?? createConfiguredLiveSession();
   let director = simulation;
   const voiceStudio = options.voiceStudio ?? new VoiceStudioService();
+  const reactionStudio = options.reactionStudio ?? new ReactionStudioService();
+  const applyAvatar = () => {
+    reactionStudio.apply(simulation);
+    reactionStudio.apply(live.director);
+  };
+  void reactionStudio.ready.then(applyAvatar);
   const multi = (options.multiplatformFactory ?? createMultiplatform)((message) =>
     director.receiveExternalChat(message),
   );
@@ -55,6 +63,7 @@ export function createStudioServer(
   const snapshot = () => ({
     ...(director === live.director ? live.snapshot() : director.snapshot()),
     voiceStudio: voiceStudio.snapshot(),
+    ...reactionStudio.snapshot(),
     multiplatform: {
       chats: multi.chats.snapshot(),
       broadcast: {
@@ -105,6 +114,57 @@ export function createStudioServer(
     res.setHeader('X-Content-Type-Options', 'nosniff');
     try {
       const path = new URL(req.url ?? '/', 'http://localhost').pathname;
+      if (path.startsWith('/api/avatar/')) {
+        await reactionStudio.ready;
+        const url = new URL(req.url ?? '/', 'http://localhost');
+        if (req.headers.origin) {
+          const origin = new URL(req.headers.origin);
+          if (
+            origin.host !== req.headers.host &&
+            !['localhost', '127.0.0.1', '[::1]'].includes(origin.hostname)
+          )
+            return json(res, 403, { error: 'Origen no permitido' });
+        }
+        if (req.method === 'GET' && path === '/api/avatar/video') {
+          const result = await reactionStudio.video(
+            url.searchParams.get('id') ?? '',
+            String(req.headers['x-avatar-session'] ?? ''),
+          );
+          res.writeHead(200, { 'Content-Type': result.mime, 'Cache-Control': 'no-store' });
+          res.end(result.bytes);
+          return;
+        }
+        if (req.method === 'POST' && path === '/api/avatar/private-session')
+          return json(res, 200, { token: reactionStudio.session() });
+        if (req.method !== 'POST' || !['/api/avatar/video', '/api/avatar/reference'].includes(path))
+          return json(res, 404, { error: 'Ruta de avatar no encontrada' });
+        const upload = path === '/api/avatar/video',
+          chunks: Buffer[] = [];
+        let size = 0;
+        for await (const chunk of req) {
+          size += Buffer.byteLength(chunk);
+          if (size > (upload ? 100 * 1024 * 1024 : 16384))
+            return json(res, 413, { error: 'Archivo o comando demasiado grande' });
+          chunks.push(Buffer.from(chunk));
+        }
+        const body = Buffer.concat(chunks);
+        if (upload)
+          await reactionStudio.upload(
+            body,
+            (req.headers['content-type'] ?? '').split(';')[0],
+            JSON.parse(url.searchParams.get('metadata') ?? '{}'),
+          );
+        else {
+          const cmd = JSON.parse(body.toString());
+          if (typeof cmd.id !== 'string') return json(res, 400, { error: 'ID inválido' });
+          if (cmd.action === 'delete') await reactionStudio.removeReference(cmd.id);
+          else if (cmd.action === 'update') await reactionStudio.updateReference(cmd.id, cmd.patch);
+          else return json(res, 400, { error: 'Acción de referencia inválida' });
+          applyAvatar();
+        }
+        broadcast();
+        return json(res, 200, snapshot());
+      }
       if (path.startsWith('/api/voice/')) {
         await voiceStudio.ready;
         const url = new URL(req.url ?? '/', 'http://localhost');
@@ -398,6 +458,7 @@ export function createStudioServer(
         return;
       }
       if (req.method === 'POST' && path === '/api/command') {
+        await reactionStudio.ready;
         if (!req.headers['content-type']?.startsWith('application/json'))
           return json(res, 415, { error: 'Se requiere application/json' });
         if (req.headers.origin) {
@@ -454,7 +515,19 @@ export function createStudioServer(
             return json(res, 409, {
               error: 'Los datos LIVE están pendientes o desactualizados; espera a la reconexión',
             });
+          if (
+            command.type === 'reaction-upsert' &&
+            command.asset.videoReferenceId &&
+            !reactionStudio
+              .snapshot()
+              .motionReferences.some((r) => r.id === command.asset.videoReferenceId)
+          )
+            return json(res, 400, { error: 'La referencia vinculada no existe' });
           director.command(command);
+          if (['avatar-settings', 'reaction-upsert', 'reaction-remove'].includes(command.type)) {
+            await reactionStudio.capture(director);
+            applyAvatar();
+          }
         }
         broadcast();
         return json(res, 200, snapshot());

@@ -69,6 +69,7 @@ export class ReactionDirector {
   pendingChatId: string | null = null;
   private speakingChatId: string | null = null;
   private controls: CommentaryDraft[] = [];
+  private activeReaction: ReactionEvent | null = null;
   interruptVoiceEnabled = false;
   private lastMinuteAt: number;
   constructor(
@@ -117,6 +118,7 @@ export class ReactionDirector {
     const memoryIds = draft.matchId
       ? this.context.publish(this.manager.get(draft.matchId), draft, now)
       : [];
+    this.activeReaction = reaction;
     this.decision = draft.decision;
     this.state = sports ? 'REACTING' : 'SPEAKING';
     this.scenes.receive(draft.decision.scene);
@@ -125,23 +127,34 @@ export class ReactionDirector {
     this.until = now + durationMs;
     const utteranceId = id();
     this.externalVoiceClock = false;
-    this.animation.play(directiveForDecision(draft.decision), now, {
-      id: utteranceId,
-      text: draft.decision.say,
-      durationMs,
-    });
-    this.playback.start(
-      this.voice,
-      {
-        id: utteranceId,
-        text: draft.decision.say,
-        emotion: draft.decision.emotion,
-        energy: draft.decision.energy,
-        durationMs,
-        reaction,
-      },
+    this.animation.play(
+      directiveForDecision(draft.decision),
       now,
+      reaction.reactOnly
+        ? null
+        : {
+            id: utteranceId,
+            text: draft.decision.say,
+            durationMs,
+          },
+      reaction,
     );
+    if (reaction.reactOnly) {
+      this.playback.react(reaction);
+      this.until = this.animation.frame(now).reactionUntil;
+    } else
+      this.playback.start(
+        this.voice,
+        {
+          id: utteranceId,
+          text: draft.decision.say,
+          emotion: draft.decision.emotion,
+          energy: draft.decision.energy,
+          durationMs,
+          reaction,
+        },
+        now,
+      );
     this.syncVoice(now);
     this.history.unshift({
       id: id(),
@@ -155,6 +168,7 @@ export class ReactionDirector {
     this.history = this.history.slice(0, 100);
   }
   private reset(now: number) {
+    this.activeReaction = null;
     this.animation.stop(now);
     this.decision = normalDecision();
     this.scenes.receive('futbol');
@@ -163,6 +177,22 @@ export class ReactionDirector {
   }
   command(cmd: StudioCommand, now = Date.now()) {
     switch (cmd.type) {
+      case 'avatar-settings':
+        this.animation.configure(cmd.patch);
+        this.settings.avatarEngine = structuredClone(this.animation.settings);
+        return;
+      case 'reaction-upsert':
+        this.animation.library.upsert(cmd.asset);
+        return;
+      case 'reaction-remove':
+        this.animation.library.remove(cmd.id);
+        return;
+      case 'avatar-stop':
+        this.animation.stop(now);
+        return;
+      case 'avatar-manual':
+        this.operator(cmd.reaction, cmd.interrupt, now);
+        return;
       case 'data-mode':
         throw new Error('El modo de datos se cambia en el coordinador de la sesión');
       case 'avatar-gaze':
@@ -378,10 +408,12 @@ export class ReactionDirector {
   tick(now = Date.now()) {
     this.playback.tick(now);
     this.syncVoice(now);
-    const current = this.playback.snapshot().reaction;
+    const current = this.activeReaction ?? this.playback.snapshot().reaction;
     if (
       this.busy &&
-      this.interruptVoiceEnabled &&
+      (this.interruptVoiceEnabled ||
+        (current?.source === 'Operador · Reaction Studio' &&
+          this.animation.settings.avatarEnabled)) &&
       current?.priority !== 'CRITICAL' &&
       current?.interruptible !== false &&
       this.settings.autoReactions
@@ -690,9 +722,9 @@ export class ReactionDirector {
     )
       return false;
     const draft = this.brain.operator(reaction);
-    const active = this.playback.snapshot().reaction;
+    const active = this.activeReaction ?? this.playback.snapshot().reaction;
     const mayInterrupt =
-      this.interruptVoiceEnabled &&
+      (this.interruptVoiceEnabled || reaction.source === 'Operador · Reaction Studio') &&
       (interrupt || (reaction.priority === 'CRITICAL' && active?.priority !== 'CRITICAL')) &&
       active?.interruptible !== false;
     if (!this.busy || mayInterrupt) {
@@ -789,6 +821,7 @@ export class ReactionDirector {
     }
   }
   snapshot(now = Date.now()): StudioSnapshot {
+    if (this.settings.avatarEngine) this.animation.configure(this.settings.avatarEngine);
     const animation = this.animation.frame(now);
     return structuredClone({
       mode: 'DEMO',
@@ -802,6 +835,7 @@ export class ReactionDirector {
       decision: this.decision,
       camera: this.camera.current,
       animation,
+      reactionLibrary: this.animation.library.snapshot(),
       avatar: {
         emotion: this.decision.emotion,
         gesture: this.decision.gesture,

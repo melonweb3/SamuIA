@@ -81,6 +81,12 @@ importers:
 
   integrations/youtube: {}
 
+  packages/avatar-engine:
+    dependencies:
+      zod:
+        specifier: ^3.24.3
+        version: 3.25.76
+
   packages/chat-engine: {}
 
   packages/core: {}

@@ -133,6 +133,23 @@ export class VoiceController {
   configureInterrupts(enabled: boolean) {
     this.interruptEnabled = enabled;
   }
+  /** Silent reaction still crosses the same voice boundary, without requesting any audio. */
+  react(reaction: ReactionEvent) {
+    this.cancel();
+    this.value = {
+      ...this.value,
+      status: 'idle',
+      utteranceId: null,
+      text: reaction.text,
+      reaction,
+      positionMs: 0,
+      durationMs: 0,
+      cues: [],
+      sync: 'text-simulation',
+      audible: false,
+      error: null,
+    };
+  }
   enqueue(provider: VoiceProvider, request: VoiceRequest, now: number) {
     for (const [key, at] of this.seen) if (now - at > 300000) this.seen.delete(key);
     const key = request.reaction?.id ?? request.id;

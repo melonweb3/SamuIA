@@ -96,7 +96,7 @@ Eliminar un perfil borra los datos locales y muestras, **no elimina automáticam
 
 `VoiceEvents` y snapshots conservan inicio, progreso, fin, cancelación/error, emoción/intensidad y amplitud 0–1. `AnalyserNode` mide el audio que se reproduce en Web Audio o en la emisión. `AvatarAnimationController.updateSpeechAmplitude` aplica apertura de boca con caducidad del nivel para no dejar una boca abierta tras perder datos. En pausa/preparación/fin la boca se cierra. SpeechSynthesis mantiene su simulación por texto porque no expone audio medible.
 
-El contrato previo admite visemas/timestamps; `GeneratedSpeech.alignment` y el puerto incremental permiten incorporar futuros proveedores. Esta fase no incorpora alineación fonética ni rig facial. Las imágenes oficiales siguen siendo fallbacks estáticos, sin deformar ni mover el escenario.
+El contrato previo admite visemas/timestamps; `GeneratedSpeech.alignment` y el puerto incremental permiten incorporar futuros proveedores. No se incorpora alineación fonética ni rig facial completo. [Avatar Engine v9](avatar-engine-v9.md) añade un renderer 2D localizado sobre la imagen oficial: consume esa amplitud para la boca, anima párpados/cabeza/torso y conserva los archivos y el escenario fijo. Reaction Studio reutiliza este mismo flujo de voz, incluyendo Flite sin claves.
 
 ## Archivos y validación
 

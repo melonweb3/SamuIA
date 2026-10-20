@@ -6,6 +6,7 @@ import {
   type AvatarRendererFactory,
 } from '../../../packages/avatar-animation/src/index';
 import { sceneSource } from './StudioScenery';
+import { OfficialImageRenderer } from './OfficialImageRenderer';
 export interface CompositorAvatarAdapter extends AvatarRendererAdapter {
   renderToCanvas?(
     context: CanvasRenderingContext2D,
@@ -21,6 +22,7 @@ export class VideoCompositor {
   private state: StudioSnapshot;
   private receivedAt = performance.now();
   private renderer: CompositorAvatarAdapter | null = null;
+  private officialRenderer = new OfficialImageRenderer();
   private raf = 0;
   private lastFrameAt = 0;
   constructor(
@@ -124,13 +126,15 @@ export class VideoCompositor {
       width: vertical ? 672 : 820,
       height: vertical ? 378 : 462,
     };
-    if (this.image?.complete && this.image.naturalWidth)
-      ctx.drawImage(this.image, bounds.x, bounds.y, bounds.width, bounds.height);
-    else this.text('Cargando escenario oficial…', 40, bounds.y + 70, bounds.width - 40);
     const frame = sampleAvatarFrame(
       state.animation,
       state.animation.sampledAt + Math.max(0, now - this.receivedAt),
     );
+    if (!this.renderer && this.officialRenderer.render(ctx, bounds, scene.file, frame)) {
+      /* The same renderer feeds preview and encoder. */
+    } else if (this.image?.complete && this.image.naturalWidth)
+      ctx.drawImage(this.image, bounds.x, bounds.y, bounds.width, bounds.height);
+    else this.text('Cargando escenario oficial…', 40, bounds.y + 70, bounds.width - 40);
     if (this.renderer) {
       this.renderer.update(frame);
       this.renderer.renderToCanvas!(ctx, bounds);
@@ -162,7 +166,11 @@ export class VideoCompositor {
     );
     const below = vertical ? 935 : 632;
     this.text(
-      this.renderer ? 'Avatar animado conectado' : 'Avatar oficial · fallback estático',
+      this.renderer
+        ? 'Avatar animado conectado'
+        : frame.engine?.avatarEnabled && frame.engine.renderMode === 'animated-2d'
+          ? 'Avatar oficial · animación 2D v9'
+          : 'Avatar oficial · fallback estático',
       24,
       vertical ? below : below - 15,
       width - 48,
@@ -183,7 +191,7 @@ export class VideoCompositor {
     );
     this.text(
       state.voice.audible
-        ? 'Voz del comentarista · señales de boca desde texto'
+        ? `Voz del comentarista · ${frame.speech?.source === 'audio-amplitude' ? 'amplitud de audio' : 'sincronización aproximada'}`
         : 'Voz simulada · sin audio',
       24,
       vertical ? 1145 : 694,
@@ -196,5 +204,6 @@ export class VideoCompositor {
   dispose() {
     cancelAnimationFrame(this.raf);
     this.renderer?.dispose();
+    this.officialRenderer.dispose();
   }
 }

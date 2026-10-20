@@ -77,7 +77,10 @@ export function AvatarRendererHost({
       );
       renderer.update(sample);
       element.dataset.avatarAnimation = sample.animation;
-      element.dataset.renderer = renderer.name;
+      element.dataset.renderer =
+        !factory && sample.engine?.avatarEnabled && sample.engine.renderMode === 'animated-2d'
+          ? 'official-image-2d-v9'
+          : renderer.name;
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);

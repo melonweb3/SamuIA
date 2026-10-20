@@ -23,6 +23,11 @@ export const priorityRank: Record<SpeechPriority, number> = {
 };
 /** The existing CommentaryDraft/ReactionDecision remains the brain output. This envelope adds delivery metadata. */
 export interface ReactionEvent {
+  avatarState?: import('../../avatar-engine/src/contracts').AvatarVisualState;
+  animationOverride?: import('../../shared/src/avatar').AvatarAnimation;
+  assetId?: string;
+  assetKind?: import('../../avatar-engine/src/contracts').ReactionKind;
+  reactOnly?: boolean;
   id: string;
   source: string;
   matchId?: string;

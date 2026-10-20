@@ -54,6 +54,7 @@ export interface AvatarSpeech {
   clock?: { positionMs: number; receivedAt: number };
 }
 export interface AvatarAnimationFrame {
+  engine?: import('../../avatar-engine/src/contracts').AvatarEngineSnapshot;
   mode: 'SIMULATION';
   clipId: number;
   requestedAnimation: AvatarAnimation;
