@@ -140,6 +140,9 @@ export class LiveMatchContextService {
       sourceIds: [message.id, q.id],
       questionId: q.id,
       username: message.username,
+      participantId: message.external
+        ? JSON.stringify([message.platform, message.external.liveId, message.external.userId])
+        : normalize(message.username),
       vote: yes ? 'yes' : 'no',
       messageId: message.id,
     });
@@ -151,7 +154,8 @@ export class LiveMatchContextService {
     if (!q) return null;
     const latest = new Map<string, (typeof mem.communityResponses)[number]>();
     for (const response of mem.communityResponses)
-      if (response.questionId === q.id) latest.set(normalize(response.username), response);
+      if (response.questionId === q.id)
+        latest.set(response.participantId ?? normalize(response.username), response);
     const responses = [...latest.values()];
     return {
       question: q,

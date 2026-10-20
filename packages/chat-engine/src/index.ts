@@ -120,10 +120,19 @@ export class ChatQueue {
     m.status = 'skipped';
   }
   mute(messageId: string) {
-    const username = normalize(this.get(messageId).username);
+    const source = this.get(messageId);
+    const username = source.external
+      ? JSON.stringify([source.platform, source.external.liveId, source.external.userId])
+      : normalize(source.username);
     this.mutedUsers.add(username);
     for (const m of this.messages)
-      if (normalize(m.username) === username && m.status === 'pending') m.status = 'muted';
+      if (
+        (m.external
+          ? JSON.stringify([m.platform, m.external.liveId, m.external.userId])
+          : normalize(m.username)) === username &&
+        m.status === 'pending'
+      )
+        m.status = 'muted';
   }
   silence() {
     if (this.selectedId) this.get(this.selectedId).status = 'skipped';

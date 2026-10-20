@@ -2608,3 +2608,31 @@ footer {
 .live-status li {
   margin-top: 6px;
 }
+
+.broadcast-admin[hidden] {
+  display: none;
+}
+.broadcast-previews {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 0.7fr);
+  gap: 20px;
+  margin-bottom: 20px;
+}
+.program-canvas canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.program-canvas.portrait {
+  max-width: 360px;
+  margin: auto;
+}
+.broadcast-admin > section,
+.broadcast-admin > .panel {
+  margin-bottom: 20px;
+}
+@media (max-width: 900px) {
+  .broadcast-previews {
+    grid-template-columns: 1fr;
+  }
+}

@@ -11,7 +11,13 @@ export interface VoiceRequest {
 }
 export interface VoiceEvents {
   started(now: number): void;
-  timing(positionMs: number, durationMs: number, cues: VisemeCue[], now: number): void;
+  timing(
+    positionMs: number,
+    durationMs: number,
+    cues: VisemeCue[],
+    now: number,
+    sync?: 'text-simulation' | 'audio-visemes',
+  ): void;
   ended(now: number): void;
   failed(message: string, now: number): void;
 }
@@ -104,7 +110,7 @@ export class VoiceController {
             this.activeSince = at;
             this.lastAt = at;
           },
-          timing: (positionMs, durationMs, cues, at) => {
+          timing: (positionMs, durationMs, cues, at, sync = 'audio-visemes') => {
             if (
               !valid() ||
               !Number.isFinite(positionMs) ||
@@ -129,7 +135,7 @@ export class VoiceController {
             this.value.positionMs = positionMs;
             this.value.durationMs = durationMs;
             this.value.cues = structuredClone(cues);
-            this.value.sync = 'audio-visemes';
+            this.value.sync = sync;
             this.lastAt = at;
           },
           ended: () => {

@@ -1,3 +1,4 @@
+import { MultiplatformAdmin } from './MultiplatformAdmin';
 import { LiveDataSession } from '../../../packages/live-data/src/index';
 import { LiveStatus } from './LiveStatus';
 import { useEffect, useState } from 'react';
@@ -21,12 +22,13 @@ const pages = [
   'Cola del Chat',
   'Memoria',
   'Integraciones',
+  'Multiplataforma',
   'SIMULATION',
   'Partido de prueba',
   'Ajustes',
 ] as const;
 type Page = (typeof pages)[number];
-const icons = ['◫', '⚑', '◎', '☷', '◈', '⌘', '▷', '⚽', '⚙'];
+const icons = ['◫', '⚑', '◎', '☷', '◈', '⌘', '◉', '▷', '⚽', '⚙'];
 export function App({ session }: { session?: ReactionDirector }) {
   const [portableMode, setPortableMode] = useState<'SIMULATION' | 'LIVE'>('SIMULATION');
   const [portableLive] = useState(() => (session ? new LiveDataSession(null) : null));
@@ -54,7 +56,8 @@ export function App({ session }: { session?: ReactionDirector }) {
     }
     const stream = new EventSource('/api/events');
     stream.onmessage = (e) => {
-      setState(JSON.parse(e.data));
+      const next: StudioSnapshot = JSON.parse(e.data);
+      setState((previous) => (previous && previous.now > next.now ? previous : next));
       setConnected(true);
     };
     stream.onerror = () => setConnected(false);
@@ -176,7 +179,7 @@ export function App({ session }: { session?: ReactionDirector }) {
           <i className={connected ? 'dot' : 'dot offline'} />
           <span>
             {connected ? 'Sistema local conectado' : 'Conectando al servidor'}
-            <small>{state?.dataMode ?? 'SIMULATION'} · LIVE Providers v6</small>
+            <small>{state?.dataMode ?? 'SIMULATION'} · Multiplataforma v7</small>
           </span>
         </div>
       </aside>
@@ -198,7 +201,7 @@ export function App({ session }: { session?: ReactionDirector }) {
               <option value="LIVE">LIVE</option>
             </select>
             <span className="local-chip">
-              ⌁ {session ? 'Demo portátil' : 'Entorno local'} · LIVE Providers v6
+              ⌁ {session ? 'Demo portátil' : 'Entorno local'} · Multiplataforma v7
             </span>
             <span className="profile-icon">S</span>
             <span>
@@ -264,6 +267,14 @@ export function App({ session }: { session?: ReactionDirector }) {
               {page === 'Memoria' && <MemoryPanel state={state} send={send} />}{' '}
               {page === 'Ajustes' && <Settings state={state} send={send} />}{' '}
               {page === 'Integraciones' && <Integrations />}
+              <MultiplatformAdmin
+                state={state}
+                visible={page === 'Multiplataforma'}
+                portable={!!session}
+                onState={(next) =>
+                  setState((previous) => (previous && previous.now > next.now ? previous : next))
+                }
+              />
               {page === 'SIMULATION' && state.dataMode !== 'LIVE' && (
                 <AvatarSimulation state={state} send={send} />
               )}

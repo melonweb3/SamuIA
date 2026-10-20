@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { eventTypes, avatarAnimations, gazeTargets } from '../../../packages/shared/src/index';
 import { officialAvatarFiles } from '../../../packages/core/src/visual';
-const id = z.string().min(1).max(128),
+const id = z.string().min(1).max(1024),
   name = z.string().trim().min(1).max(80),
   level = z.number().int().min(0).max(100);
 const status = z.enum(['upcoming', 'live', 'halftime', 'finished']);

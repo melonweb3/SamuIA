@@ -4,7 +4,7 @@ import { studioScenery } from '../../../packages/core/src/scenery';
 import { statusLabels } from './ui';
 
 let embedded: Record<string, string> | undefined;
-function sceneSource(filename: string): string | null {
+export function sceneSource(filename: string): string | null {
   if (document.documentElement.dataset.portable !== 'true') return `/samuia/scenes/${filename}`;
   if (!embedded) {
     embedded = {};

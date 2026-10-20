@@ -76,6 +76,7 @@ export class CommentaryEngine {
     match: MatchState,
     profile: AICommentatorProfile,
     kind: 'analysis' | 'prediction' | 'question' | 'community' = 'analysis',
+    trend?: { text: string; sourceIds: string[]; appendToPoll: boolean },
   ): CommentaryDraft {
     profile = this.profileFor(match, profile);
     const c = this.context.get(match.id);
@@ -106,6 +107,12 @@ export class CommentaryEngine {
         const pct = Math.round((poll.yes / poll.total) * 100);
         say = `Sobre «${poll.question.content}», el ${pct}% ha dicho sí: ${poll.yes} de ${poll.total} participantes distintos. ${pct >= 40 && pct <= 60 ? 'Hay división aquí.' : 'Mensaje bastante claro.'}`;
         draft.sourceIds = poll.responses.map((r) => r.messageId);
+      }
+      if (trend && (!poll?.total || trend.appendToPoll)) {
+        say = poll?.total ? `${say} ${trend.text}` : trend.text;
+        draft.sourceIds = [
+          ...new Set([...(poll?.total ? draft.sourceIds : []), ...trend.sourceIds]),
+        ];
       }
     } else if (kind === 'question') {
       say =

@@ -37,3 +37,5 @@ export interface VoiceProvider {
   }): Promise<{ durationMs: number; audio?: Uint8Array }>;
   stop(): void;
 }
+export type { ExternalChatProvider, ExternalChatBatch } from '../packages/external-chat/src/index';
+export type { Encoder, BroadcastOutput } from '../packages/broadcast/src/index';

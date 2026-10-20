@@ -6,7 +6,8 @@ export function Integrations() {
         <b>Proveedores independientes, configuración en el servidor.</b>
         <p>
           SIMULATION funciona sin claves. LIVE admite HTTP JSON y API-Football con configuración
-          privada en el servidor. Las integraciones sociales y OBS siguen como mocks.
+          privada en el servidor. Multiplataforma permite configurar chats y salidas independientes;
+          OBS conserva su adaptador de prueba.
         </p>
       </div>
       <div className="integration-grid">
@@ -31,9 +32,15 @@ export function Integrations() {
             'CommunityCommentProvider',
             'Mensajes de la app con partido, ID y timestamp; cola y memoria existentes.',
           ],
-          ['Twitch', 'ChatProvider', 'Buzón mock de comentarios y envío.'],
-          ['YouTube', 'ChatProvider', 'Adaptador intercambiable sin conexión.'],
-          ['TikTok', 'ChatProvider', 'Adaptador intercambiable sin conexión.'],
+          ['Twitch', 'TwitchChatProvider', 'Lectura mediante IRC oficial con normalización y reconexión.'],
+          ['YouTube', 'YouTubeChatProvider', 'Lectura del chat mediante la API oficial y OAuth del servidor.'],
+          ['Kick', 'KickChatProvider', 'Recepción de webhooks oficiales con verificación de firma.'],
+          ['TikTok', 'TikTokChatProvider', 'Disponible mediante un relay autorizado; restringido sin permisos.'],
+          [
+            'Retransmisión',
+            'BroadcastOutputManager',
+            'Composiciones propias 16:9 y 9:16, codificación FFmpeg y salidas RTMP/RTMPS independientes.',
+          ],
           [
             'Avatar 2D/3D',
             'AvatarRendererAdapter',
@@ -50,9 +57,7 @@ export function Integrations() {
             title={name}
             meta={
               <Badge>
-                {['Datos deportivos', 'Comunidad propia', 'Voz de SamuIA'].includes(name)
-                  ? 'ADAPTER'
-                  : 'MOCK'}
+                {name === 'OBS Studio' ? 'MOCK' : name === 'OpenAI' ? 'LOCAL' : 'ADAPTER'}
               </Badge>
             }
           >

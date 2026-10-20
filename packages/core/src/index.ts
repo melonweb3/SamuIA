@@ -1,3 +1,6 @@
+import { CommunityAnalyzer } from '../../community/src/index';
+import { relatedMatch } from '../../chat-engine/src/index';
+import type { ExternalChatMessage } from '../../shared/src/index';
 import { AppCommunityCommentProvider } from '../../live-data/src/contracts';
 import { VoiceController, type VoiceProvider } from '../../voice/src/index';
 import { AvatarAnimationController } from '../../avatar-animation/src/index';
@@ -43,6 +46,7 @@ export class ReactionDirector {
   brain = new SamuIABrain(this.commentary);
   chat = new ChatQueue();
   community = new AppCommunityCommentProvider();
+  communityAnalyzer = new CommunityAnalyzer();
   scheduler = new SportsReactionScheduler();
   camera = new CameraDirector();
   scenes = new SceneManager();
@@ -213,6 +217,21 @@ export class ReactionDirector {
           now,
           cmd.matchId ?? this.manager.currentMatchId ?? undefined,
         );
+        this.communityAnalyzer.ingest(
+          {
+            id: message.id,
+            platform: 'simulator',
+            liveId: 'studio',
+            userId: message.username,
+            username: message.username,
+            message: message.message,
+            timestamp: now,
+            matchId: message.relatedMatchId,
+            simulated: true,
+          },
+          now,
+          false,
+        );
         if (message.relatedMatchId)
           this.context.receiveCommunity(this.manager.get(message.relatedMatchId), message);
         break;
@@ -323,7 +342,12 @@ export class ReactionDirector {
         if (this.busy || this.state === 'COOLDOWN')
           throw new Error('Espera al final de la frase y del cooldown');
         this.perform(
-          this.commentary.analyze(m, this.outputProfile, cmd.kind),
+          this.commentary.analyze(
+            m,
+            this.outputProfile,
+            cmd.kind,
+            cmd.kind === 'community' ? this.communityTrend(m.id, now) : undefined,
+          ),
           `Comentario · ${cmd.kind}`,
           now,
         );
@@ -446,7 +470,23 @@ export class ReactionDirector {
       this.manager.activeMatches.some((m) => m.id === message.relatedMatchId)
     )
       this.manager.focus(message.relatedMatchId, now);
-    const draft = this.brain.respond(message, this.manager, this.outputProfile);
+    let draft = this.brain.respond(message, this.manager, this.outputProfile);
+    if (
+      /sentimiento|tendencia|opina.*(twitch|youtube|kick|tiktok)|resum.*chat/i.test(message.message)
+    ) {
+      const match = this.manager.activeMatches.find((m) => m.id === message.relatedMatchId);
+      if (match)
+        draft = this.commentary.analyze(
+          match,
+          this.outputProfile,
+          'community',
+          this.communityTrend(match.id, now),
+        );
+      else {
+        draft.decision.say = this.communityAnalyzer.describe(undefined, now);
+        draft.sourceIds = this.communityAnalyzer.sourceIds(undefined, now);
+      }
+    }
     draft.sourceIds = [...new Set([...draft.sourceIds, message.id])];
     this.perform(draft, `Chat · ${message.username}`, now);
   }
@@ -471,6 +511,42 @@ export class ReactionDirector {
     this.playback.cancel();
     this.until = now;
     this.tick(now);
+    return true;
+  }
+  private communityTrend(matchId: string, now: number) {
+    const summary = this.communityAnalyzer.summary(matchId, now);
+    return {
+      text: this.communityAnalyzer.describe(matchId, now),
+      sourceIds: this.communityAnalyzer.sourceIds(matchId, now),
+      appendToPoll: summary.platforms.some((p) => p.platform !== 'simulator'),
+    };
+  }
+  receiveExternalChat(input: ExternalChatMessage, now = Date.now()) {
+    const matchId =
+      relatedMatch(input.message, this.manager.followed())?.id ??
+      this.manager.currentMatchId ??
+      undefined;
+    const canonicalId = JSON.stringify([input.platform, input.liveId, input.id]);
+    const identity = JSON.stringify([input.platform, input.liveId, input.userId]);
+    if (this.chat.mutedUsers.has(identity)) return false;
+    if (
+      !this.communityAnalyzer.ingest({ ...input, id: canonicalId, matchId }, now, true, input.isBot)
+    )
+      return false;
+    const message = this.chat.add(
+      input.username,
+      input.message,
+      this.manager.followed(),
+      input.timestamp,
+      matchId,
+    );
+    message.id = canonicalId;
+    message.platform = input.platform;
+    message.external = { ...input };
+    message.status = 'pending';
+    if (/[?¿]/.test(input.message)) message.priority += 15;
+    if (message.relatedMatchId)
+      this.context.receiveCommunity(this.manager.get(message.relatedMatchId), message);
     return true;
   }
   applyLiveMatch(record: LiveMatchRecord, now: number) {
@@ -613,6 +689,7 @@ export class ReactionDirector {
     return structuredClone({
       mode: 'DEMO',
       dataMode: this.dataMode,
+      community: this.communityAnalyzer.summary(undefined, now),
       voice: this.playback.snapshot(),
       state: this.state,
       decision: this.decision,

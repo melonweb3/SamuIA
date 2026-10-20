@@ -8,7 +8,7 @@ Esta versión reconstruye el MVP descrito en la conversación y añade la person
 
 Descarga **[downloads/SamuIA-Live-Studio.html](downloads/SamuIA-Live-Studio.html)** y abre el archivo guardado con un navegador moderno. Contiene React, estilos y los mismos motores dentro de un único HTML; no necesita servidor ni Internet. En GitHub, usa el botón de descargar el archivo: la vista del código HTML no es la aplicación.
 
-**Para actualizar una copia anterior:** vuelve a descargar el HTML; el archivo guardado en tu ordenador no se actualiza al cambiar GitHub. Guárdalo como `SamuIA-live-providers-v6.html` y abre ese archivo nuevo. Esta edición muestra **«LIVE Providers v6»** arriba, incluye los cinco fondos originales y permite elegirlos en **Ajustes → Escenario del comentarista → Setup principal**. Incluye cinco composiciones con personaje y habitación unidos en una imagen por escena, sin marco ni fondo blanco. Si no ves ese indicador, estás abriendo otra edición.
+**Para actualizar una copia anterior:** vuelve a descargar el HTML; el archivo guardado en tu ordenador no se actualiza al cambiar GitHub. Guárdalo como `SamuIA-multiplataforma-v7.html` y abre ese archivo nuevo. Esta edición muestra **«Multiplataforma v7»** arriba, incluye los cinco fondos originales y permite elegirlos en **Ajustes → Escenario del comentarista → Setup principal**. Incluye cinco composiciones con personaje y habitación unidos en una imagen por escena, sin marco ni fondo blanco. Si no ves ese indicador, estás abriendo otra edición.
 
 Cada pestaña tiene su propia sesión. **Recargar el HTML restaura la demo inicial**. Puedes exportar los datos de memoria como JSON desde Memoria (es una exportación para consulta, no un importador de sesiones). La voz predeterminada es simulada sin audio; en Partido de prueba se puede seleccionar TTS local del navegador. El avatar usa las cinco fotografías originales oficiales; los fondos siguen siendo escenarios de demostración.
 
@@ -171,3 +171,9 @@ Abre **Partido de prueba → Reproducir partido completo**. El guion local de 24
 ## Datos reales · LIVE
 
 El selector **Modo de datos** alterna entre SIMULATION y LIVE. Configura `.env` siguiendo [la guía de proveedores LIVE](docs/live-data.md); `.env.example` incluye las variables sin credenciales. LIVE combina datos, eventos, narración opcional y comunidad con el CommentaryEngine existente, e incorpora deduplicación, reconexión y fallback. El HTML portátil mantiene SIMULATION completo y muestra el diagnóstico de LIVE; la conexión real requiere el servidor para proteger las claves.
+
+## Chats y retransmisión multiplataforma
+
+Abre **Multiplataforma** para configurar de forma independiente los chats y las salidas de YouTube, Twitch, Kick y TikTok. Hay previsualizaciones 16:9/9:16 y una **Prueba local codificada** que usa FFmpeg sin abrir destinos públicos. Los chats entran al CommunityAnalyzer y al cerebro existente con filtros, identidad y contexto. [Configuración, permisos y límites](docs/multiplataforma.md).
+
+Las emisiones usan únicamente el programa propio de SamuIA. El avatar sigue como fallback estático hasta conectar un renderer con rig; la salida admite sus frames y lip-sync sin cambiar el pipeline. El audio capturable puede probarse con `BROADCAST_TTS=flite` (voz local de prueba). Las claves y tokens se configuran solo en `.env` del servidor. El HTML portátil conserva la simulación y las dos previsualizaciones; las plataformas externas requieren el backend.

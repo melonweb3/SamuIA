@@ -1,3 +1,5 @@
+import type { CommunitySummary, ExternalChatMessage, MultiplatformState } from './multiplatform';
+export * from './multiplatform';
 import type { DataMode, LiveDiagnostics, LiveIncident, LiveMatchRecord } from './live';
 export * from './live';
 import type { VoiceSnapshot } from '../../voice/src/index';
@@ -156,6 +158,7 @@ export interface CommunityQuestion extends MemoryEntry {
   closed: boolean;
 }
 export interface CommunityResponse extends MemoryEntry {
+  participantId?: string;
   questionId: string;
   username: string;
   vote: 'yes' | 'no';
@@ -252,7 +255,8 @@ export interface ChatMessage {
   id: string;
   username: string;
   message: string;
-  platform: 'simulator' | 'twitch' | 'youtube' | 'tiktok';
+  platform: 'simulator' | 'twitch' | 'youtube' | 'kick' | 'tiktok';
+  external?: ExternalChatMessage;
   timestamp: number;
   priority: number;
   status: 'pending' | 'selected' | 'answered' | 'skipped' | 'muted';
@@ -291,6 +295,8 @@ export interface CommentaryDraft {
   sourceIds: string[];
 }
 export interface StudioSnapshot {
+  community: CommunitySummary;
+  multiplatform?: MultiplatformState;
   dataMode: DataMode;
   live?: LiveDiagnostics;
   voice: VoiceSnapshot;
