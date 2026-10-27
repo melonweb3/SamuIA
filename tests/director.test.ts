@@ -139,3 +139,99 @@ it('CameraDirector respeta cooldown y se puede restablecer', () => {
   c.reset();
   expect(c.current).toBe('streamer');
 });
+
+describe('admisión compartida de intervenciones', () => {
+  it('reserva una sola respuesta y solo la marca contestada al terminar', () => {
+    const d = new ReactionDirector(now, false);
+    const message = d.chat.add('Ana', '¿Cómo va el Celta?', d.manager.followed(), now);
+    expect(d.respondToPendingChat(now)).toBe(true);
+    expect(d.respondToPendingChat(now + 1)).toBe(false);
+    expect(message.status).toBe('selected');
+    d.tick(now + 201);
+    expect(d.history).toHaveLength(1);
+    expect(message.status).toBe('selected');
+    d.tick(d.until + 1);
+    expect(message.status).toBe('answered');
+    expect(d.readyForIntervention).toBe(false);
+    d.tick(d.until + 1);
+    expect(d.readyForIntervention).toBe(true);
+    expect(d.respondToPendingChat(d.until + 1)).toBe(false);
+  });
+
+  it('mantiene la selección por prioridad o llegada sin perder mensajes pendientes', () => {
+    for (const arrivalOrder of [false, true]) {
+      const d = new ReactionDirector(now, false);
+      const first = d.chat.add('Ana', 'hola', d.manager.followed(), now);
+      const urgent = d.chat.add('Luis', 'Samu, ¿cómo va el Celta?', d.manager.followed(), now + 1);
+      expect(urgent.priority).toBeGreaterThan(first.priority);
+      expect(d.respondToPendingChat(now + 2, { arrivalOrder })).toBe(true);
+      expect(d.chat.selectedId).toBe(arrivalOrder ? first.id : urgent.id);
+      expect(d.chat.pending().map((m) => m.id)).toEqual([arrivalOrder ? urgent.id : first.id]);
+    }
+  });
+
+  it('el estudio filtra por origen y prioridad sin responder automáticamente al chat local', () => {
+    const d = new ReactionDirector(now, false);
+    const local = d.chat.add('Local', 'Samu, ¿cómo va el Celta?', d.manager.followed(), now);
+    const receive = (id: string, message: string) =>
+      d.receiveExternalChat(
+        {
+          id,
+          platform: 'youtube',
+          liveId: 'directo',
+          userId: id,
+          username: id,
+          message,
+          timestamp: now,
+          receivedAt: now,
+        },
+        now,
+      );
+    receive('low', 'hola');
+    const policy = { externalOnly: true, minimumPriority: 30 };
+    expect(d.respondToPendingChat(now, policy)).toBe(false);
+    receive('question', 'Samu, ¿cómo va el Celta?');
+    expect(d.respondToPendingChat(now, policy)).toBe(true);
+    expect(d.chat.get(d.chat.selectedId!).external?.id).toBe('question');
+    expect(local.status).toBe('pending');
+  });
+
+  it('ninguna política automática reserva una respuesta con datos LIVE desactualizados', () => {
+    const d = new ReactionDirector(now, false);
+    d.dataMode = 'LIVE';
+    d.dataFresh = false;
+    d.receiveExternalChat(
+      {
+        id: 'question',
+        platform: 'youtube',
+        liveId: 'directo',
+        userId: 'ana',
+        username: 'Ana',
+        message: 'Samu, ¿cómo va el Celta?',
+        timestamp: now,
+        receivedAt: now,
+      },
+      now,
+    );
+    expect(d.respondToPendingChat(now, { arrivalOrder: true })).toBe(false);
+    expect(d.respondToPendingChat(now, { externalOnly: true, minimumPriority: 30 })).toBe(false);
+    expect(d.chat.messages[0].status).toBe('pending');
+    d.dataFresh = true;
+    expect(d.respondToPendingChat(now, { arrivalOrder: true })).toBe(true);
+  });
+
+  it('los eventos deportivos pendientes conservan el turno antes que la respuesta automática', () => {
+    const d = new ReactionDirector(now, false);
+    d.settings.autoReactions = false;
+    d.chat.add('Ana', 'Samu, ¿cómo va el Celta?', d.manager.followed(), now);
+    d.command({ type: 'event', matchId: 'celta-madrid', eventType: 'goal', side: 'home' }, now);
+    expect(d.state).toBe('IDLE');
+    expect(d.readyForIntervention).toBe(false);
+    expect(d.respondToPendingChat(now)).toBe(false);
+    d.settings.autoReactions = true;
+    d.tick(now + 1);
+    expect(d.state).toBe('REACTING');
+    expect(d.respondToPendingChat(now + 2)).toBe(false);
+    expect(d.history[0].source).toContain('Gol');
+  });
+});

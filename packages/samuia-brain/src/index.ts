@@ -5,6 +5,7 @@ import {
   type AICommentatorProfile,
   type ChatMessage,
   type CommentaryDraft,
+  type StudioCommand,
 } from '../../shared/src/index';
 import { relatedMatch } from '../../chat-engine/src/index';
 import type { MatchManager } from '../../football-engine/src/index';
@@ -16,6 +17,33 @@ import { stateAnimation } from '../../avatar-engine/src/contracts';
 export { CommentaryEngine, LiveMatchContextService };
 export class SamuIABrain {
   constructor(public commentary: CommentaryEngine) {}
+  /** Compatibility controls generate content here, just like operator interventions. */
+  control(
+    action: Exclude<Extract<StudioCommand, { type: 'control' }>['action'], 'silence'>,
+  ): CommentaryDraft {
+    let decision = normalDecision();
+    if (action === 'angry')
+      decision = {
+        ...decision,
+        say: 'Nah, meu… hoy venís buscando pique. Pero aquí todo con cariño.',
+        scene: 'enfado',
+        emotion: 'enfadado_leve',
+        camera: 'primer_plano',
+        energy: 82,
+      };
+    else if (action === 'celebrate')
+      decision = {
+        ...decision,
+        say: '¡Buena esa! ¡Vamos allá, meu!',
+        scene: 'celebracion',
+        emotion: 'risa',
+        camera: 'primer_plano',
+        gesture: 'celebracion',
+        energy: 100,
+      };
+    else decision.say = 'Volvemos al lío, con calma.';
+    return { decision, recallIds: [], sourceIds: [] };
+  }
   operator(reaction: ReactionEvent): CommentaryDraft {
     const clips: Partial<Record<ReactionEvent['emotion'], AvatarAnimation>> = {
       celebrating: 'goal',

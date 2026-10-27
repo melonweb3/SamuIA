@@ -17,16 +17,36 @@ test('partido completo offline: todos los eventos, chat, predicción acertada y 
   await page.route('http://localhost/match-trial', (r) =>
     r.fulfill({ contentType: 'text/html', body: html }),
   );
+  // Keep automatic progression under test control: a short reaction must not
+  // disappear while Playwright inspects it on a busy machine.
+  const start = new Date('2026-01-01T12:00:00Z');
+  await page.clock.install({ time: start });
+  await page.clock.pauseAt(new Date(start.getTime() + 1000));
   await context.setOffline(true);
   await page.goto('http://localhost/match-trial#partido-prueba');
   await expect(page.getByTestId('trial-status')).toHaveText('Próximo');
   await expect(page.getByTestId('trial-score')).toHaveText('0 – 0');
   await page.getByRole('button', { name: 'Reproducir partido completo', exact: true }).click();
+  await page.clock.runFor(250);
   for (let index = 0; index < matchSimulationSteps.length; index++) {
     const step = matchSimulationSteps[index];
     await expect(page.locator('.trial-steps > .active')).toContainText(step.label, {
       timeout: 12000,
     });
+    // Minor sports events deliberately wait for grouping before speaking.
+    await expect
+      .poll(
+        async () => {
+          const reading = page.getByRole('button', {
+            name: 'Terminar lectura simulada',
+            exact: true,
+          });
+          if (!(await reading.isEnabled())) await page.clock.runFor(250);
+          return reading.isEnabled();
+        },
+        { timeout: 12000, intervals: [0] },
+      )
+      .toBe(true);
     await expect(
       page.getByRole('button', { name: 'Terminar lectura simulada', exact: true }),
     ).toBeEnabled({ timeout: 12000 });
@@ -47,6 +67,8 @@ test('partido completo offline: todos los eventos, chat, predicción acertada y 
       await expect(page.getByTestId('trial-comment')).toContainText('2 de 3');
     }
     await page.getByRole('button', { name: 'Terminar lectura simulada', exact: true }).click();
+    // Complete the cooldown and the next step's optional thinking state.
+    await page.clock.runFor(1000);
     await expect(page.locator('.trial-steps > .completed')).toHaveCount(index + 1, {
       timeout: 12000,
     });

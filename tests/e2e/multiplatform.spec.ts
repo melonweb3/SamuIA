@@ -10,6 +10,7 @@ test('administración: chats normalizados, filtros, formatos y capacidades aisla
   const app = createStudioServer();
   await new Promise<void>((resolve) => app.server.listen(0, '127.0.0.1', resolve));
   const base = `http://127.0.0.1:${(app.server.address() as AddressInfo).port}`;
+  let releaseChat: (() => void) | undefined;
   try {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
@@ -26,7 +27,17 @@ test('administración: chats normalizados, filtros, formatos y capacidades aisla
         .locator('[data-testid="compositor-portrait"] canvas')
         .evaluate((c: HTMLCanvasElement) => [c.width, c.height]),
     ).toEqual([720, 1280]);
+    // The controlled input must keep the requested value before the API replies.
+    const chatPending = new Promise<void>((resolve) => {
+      releaseChat = resolve;
+    });
+    await page.route(base + '/api/multiplatform/command', async (route) => {
+      if (route.request().postDataJSON().action === 'chat') await chatPending;
+      await route.continue();
+    });
     await page.getByLabel('Chat TikTok ON/OFF', { exact: true }).check();
+    await expect(page.getByLabel('Chat TikTok ON/OFF', { exact: true })).toBeChecked();
+    releaseChat?.();
     await expect(page.getByTestId('chat-state-tiktok')).toHaveText('restricted');
     await page.getByLabel('Twitch ON/OFF', { exact: true }).check();
     await expect(page.getByTestId('output-state-twitch')).toHaveText('unconfigured');
@@ -50,6 +61,7 @@ test('administración: chats normalizados, filtros, formatos y capacidades aisla
     await page.screenshot({ path: '.local/multiplatform-admin.png', fullPage: true });
     expect(errors).toEqual([]);
   } finally {
+    releaseChat?.();
     app.stop();
   }
 });

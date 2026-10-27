@@ -91,6 +91,33 @@ export class ReactionDirector {
   get busy() {
     return ['THINKING', 'SPEAKING', 'REACTING'].includes(this.state);
   }
+  /** Shared admission rule for automatic chat and guided simulation steps. */
+  get readyForIntervention() {
+    return (
+      this.state === 'IDLE' &&
+      !this.pendingChatId &&
+      !this.chat.selectedId &&
+      !this.scheduler.sportsEventQueue.length &&
+      !this.controls.length
+    );
+  }
+  /** Session adapters choose candidates; only the director reserves the speaking turn. */
+  respondToPendingChat(
+    now = Date.now(),
+    policy: { externalOnly?: boolean; minimumPriority?: number; arrivalOrder?: boolean } = {},
+  ): boolean {
+    if (!this.readyForIntervention || (this.dataMode === 'LIVE' && !this.dataFresh)) return false;
+    const messages = policy.arrivalOrder ? this.chat.messages : this.chat.pending();
+    const message = messages.find(
+      (m) =>
+        m.status === 'pending' &&
+        (!policy.externalOnly || !!m.external) &&
+        m.priority >= (policy.minimumPriority ?? -Infinity),
+    );
+    if (!message) return false;
+    this.command({ type: 'respond', id: message.id }, now);
+    return true;
+  }
   private get outputProfile(): AICommentatorProfile {
     return this.settings.safeMode
       ? {
@@ -314,28 +341,7 @@ export class ReactionDirector {
           this.until = now + this.settings.reactionCooldown * 1000;
           this.scheduler.lastReactionAt = now;
         } else {
-          const decision =
-            cmd.action === 'angry'
-              ? {
-                  ...normalDecision(),
-                  say: 'Nah, meu… hoy venís buscando pique. Pero aquí todo con cariño.',
-                  scene: 'enfado' as const,
-                  emotion: 'enfadado_leve' as const,
-                  camera: 'primer_plano' as const,
-                  energy: 82,
-                }
-              : cmd.action === 'celebrate'
-                ? {
-                    ...normalDecision(),
-                    say: '¡Buena esa! ¡Vamos allá, meu!',
-                    scene: 'celebracion' as const,
-                    emotion: 'risa' as const,
-                    camera: 'primer_plano' as const,
-                    gesture: 'celebracion' as const,
-                    energy: 100,
-                  }
-                : { ...normalDecision(), say: 'Volvemos al lío, con calma.' };
-          this.controls.push({ decision, recallIds: [], sourceIds: [] });
+          this.controls.push(this.brain.control(cmd.action));
           this.controls = this.controls.slice(-10);
         }
         break;

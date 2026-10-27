@@ -120,18 +120,8 @@ export class LiveDataSession {
     this.director.dataFresh =
       !this.diagnostics.stale && this.diagnostics.status === 'connected' && this.pending.size === 0;
     this.director.tick(now);
-    if (
-      this.director.dataFresh &&
-      !this.director.busy &&
-      this.director.state === 'IDLE' &&
-      !this.director.pendingChatId &&
-      !this.director.chat.selectedId &&
-      !this.director.scheduler.sportsEventQueue.length &&
-      this.director.profile.communityInteractionLevel > 0
-    ) {
-      const message = this.director.chat.messages.find((m) => m.status === 'pending');
-      if (message) this.director.command({ type: 'respond', id: message.id }, now);
-    }
+    if (this.director.profile.communityInteractionLevel > 0)
+      this.director.respondToPendingChat(now, { arrivalOrder: true });
     if (!this.polling && this.matches && now >= (this.diagnostics.nextRetryAt ?? 0))
       void this.poll(now);
   }

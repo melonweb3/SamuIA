@@ -228,11 +228,7 @@ export function MultiplatformAdmin({
                     aria-label={`Chat ${names[p]} ON/OFF`}
                     checked={toggles[`chat:${p}`] ?? chat?.enabled ?? false}
                     disabled={portable || busy}
-                    onChange={(e) =>
-                      void act(() =>
-                        admin({ action: 'chat', platform: p, enabled: e.target.checked }),
-                      )
-                    }
+                    onChange={(e) => toggle('chat', p, e.target.checked)}
                   />{' '}
                   Recibir chat
                 </label>

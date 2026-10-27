@@ -97,17 +97,8 @@ export function createStudioServer(
     multi.broadcast.tick();
     syncVoice();
     voiceStudio.tick();
-    if (
-      !director.busy &&
-      director.state === 'IDLE' &&
-      !director.pendingChatId &&
-      !director.chat.selectedId &&
-      !director.scheduler.sportsEventQueue.length &&
-      director.profile.communityInteractionLevel > 0
-    ) {
-      const message = director.chat.pending().find((m) => m.external && m.priority >= 30);
-      if (message) director.command({ type: 'respond', id: message.id });
-    }
+    if (director.profile.communityInteractionLevel > 0)
+      director.respondToPendingChat(Date.now(), { externalOnly: true, minimumPriority: 30 });
     broadcast();
   }, 250);
   const server = createServer(async (req, res) => {

@@ -136,13 +136,7 @@ export class MatchSimulationSession {
     this.lastNow = now;
   }
   private get ready() {
-    return (
-      !this.director.busy &&
-      this.director.state !== 'COOLDOWN' &&
-      !this.director.pendingChatId &&
-      !this.director.chat.selectedId &&
-      !this.director.scheduler.sportsEventQueue.length
-    );
+    return this.director.readyForIntervention;
   }
   get canAdvance() {
     return !this.manual && !this.active && this.ready && !this.done;
@@ -174,13 +168,7 @@ export class MatchSimulationSession {
         this.index++;
       }
     }
-    if (this.autoReply && this.ready) {
-      const message = this.director.chat.pending()[0];
-      if (message) {
-        this.director.command({ type: 'respond', id: message.id }, now);
-        return;
-      }
-    }
+    if (this.autoReply && this.director.respondToPendingChat(now)) return;
     if (this.running && !this.active && this.ready && !this.done) {
       try {
         this.next(now);
