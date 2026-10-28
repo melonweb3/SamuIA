@@ -1,3 +1,4 @@
+import { programModeSchema, newsCommandSchema } from '../../../packages/news/src/schema';
 import { z } from 'zod';
 import { eventTypes, avatarAnimations, gazeTargets } from '../../../packages/shared/src/index';
 import { officialAvatarFiles } from '../../../packages/core/src/visual';
@@ -72,7 +73,7 @@ const profile = z
   })
   .partial()
   .strict();
-export const commandSchema = z.discriminatedUnion('type', [
+const studioCommandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('avatar-settings'), patch: avatarSettingsSchema.partial() }).strict(),
   z.object({ type: z.literal('reaction-upsert'), asset: reactionAssetSchema }).strict(),
   z.object({ type: z.literal('reaction-remove'), id }).strict(),
@@ -175,3 +176,5 @@ export const commandSchema = z.discriminatedUnion('type', [
     })
     .strict(),
 ]);
+
+export const commandSchema = z.union([studioCommandSchema, programModeSchema, newsCommandSchema]);

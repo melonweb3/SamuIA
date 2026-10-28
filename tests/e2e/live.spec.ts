@@ -48,7 +48,7 @@ test('LIVE en navegador: HTTP → normalización → comentario propio → avata
     new HttpLiveCommentaryProvider(source + '/commentary'),
     { pollMs: 1000, mergeMs: 100 },
   );
-  const app = createStudioServer({ live });
+  const app = createStudioServer({ live, newsStorageFile: null });
   await new Promise<void>((resolve) => app.server.listen(0, '127.0.0.1', resolve));
   const base = `http://127.0.0.1:${(app.server.address() as AddressInfo).port}`;
   const errors: string[] = [];

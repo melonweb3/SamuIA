@@ -1,3 +1,7 @@
+import { NewsService } from './news-service';
+import type { GenerateText } from './news-brain';
+import { NewsSourceManager } from './news-sources';
+import { z } from 'zod';
 import { createMultiplatform } from './multiplatform-config';
 import { multiplatformCommandSchema } from './multiplatform-commands';
 import type { VoiceProvider } from '../../../packages/voice/src/index';
@@ -15,6 +19,9 @@ import { ReactionStudioService } from './reaction-studio';
 export function createStudioServer(
   options: {
     live?: LiveDataSession;
+    newsStorageFile?: string | null;
+    newsGenerate?: GenerateText;
+    newsEnv?: NodeJS.ProcessEnv;
     voiceStudio?: VoiceStudioService;
     reactionStudio?: ReactionStudioService;
     multiplatformFactory?: (
@@ -35,6 +42,23 @@ export function createStudioServer(
   const multi = (options.multiplatformFactory ?? createMultiplatform)((message) =>
     director.receiveExternalChat(message),
   );
+  const newsSources = new NewsSourceManager((items, now) => {
+    director.news.ingest(items, now);
+  }, options.newsEnv ?? process.env);
+  const newsService = new NewsService(newsSources, () => director, {
+    storageFile: options.newsStorageFile,
+    generate: options.newsGenerate,
+    env: options.newsEnv,
+  });
+  for (const owner of [simulation, live.director])
+    owner.brain.newsResponder = (question, story, local) =>
+      newsService.answer(question, story, local);
+  const persistenceTimer = setInterval(() => newsService.save(), 1000);
+  try {
+    newsSources.loadCatalog();
+  } catch {
+    newsService.log('source-catalog-invalid-or-unauthorized');
+  }
   const originalVoices = new Map<ReactionDirector, VoiceProvider>();
   let voiceCaptureActive = false;
   const broadcastVoice = () => (voiceStudio.capturable ? voiceStudio : multi.voice);
@@ -60,18 +84,23 @@ export function createStudioServer(
         originalVoices.delete(owner);
       }
   };
-  const snapshot = () => ({
-    ...(director === live.director ? live.snapshot() : director.snapshot()),
-    voiceStudio: voiceStudio.snapshot(),
-    ...reactionStudio.snapshot(),
-    multiplatform: {
-      chats: multi.chats.snapshot(),
-      broadcast: {
-        ...multi.broadcast.snapshot(broadcastVoice()?.readyId() ?? null),
-        audioAvailable: !!broadcastVoice(),
+  const snapshot = () => {
+    director.news.setSources(newsSources.sources);
+    director.news.state.externalAvailable = true;
+    return {
+      ...(director === live.director ? live.snapshot() : director.snapshot()),
+      newsService: newsService.snapshot(),
+      voiceStudio: voiceStudio.snapshot(),
+      ...reactionStudio.snapshot(),
+      multiplatform: {
+        chats: multi.chats.snapshot(),
+        broadcast: {
+          ...multi.broadcast.snapshot(broadcastVoice()?.readyId() ?? null),
+          audioAvailable: !!broadcastVoice(),
+        },
       },
-    },
-  });
+    };
+  };
   const clients = new Set<ServerResponse>(),
     root = resolve('apps/studio/dist');
   const json = (res: ServerResponse, status: number, value: unknown) => {
@@ -93,6 +122,7 @@ export function createStudioServer(
   const timer = setInterval(() => {
     if (director === live.director) live.tick();
     else director.tick();
+    newsSources.tick(Date.now(), director.news.state.categories);
     multi.chats.tick();
     multi.broadcast.tick();
     syncVoice();
@@ -448,6 +478,43 @@ export function createStudioServer(
         req.on('close', () => clients.delete(res));
         return;
       }
+      if (req.method === 'POST' && ['/api/news/sources', '/api/news/manage'].includes(path)) {
+        if (req.headers.origin && new URL(req.headers.origin).host !== req.headers.host)
+          return json(res, 403, { error: 'Origen no permitido' });
+        if (!req.headers['content-type']?.startsWith('application/json'))
+          return json(res, 415, { error: 'Se requiere JSON' });
+        const chunks: Buffer[] = [];
+        let size = 0;
+        for await (const chunk of req) {
+          size += Buffer.byteLength(chunk);
+          if (size > 16384) return json(res, 413, { error: 'Solicitud demasiado grande' });
+          chunks.push(Buffer.from(chunk));
+        }
+        const raw = JSON.parse(Buffer.concat(chunks).toString());
+        if (path === '/api/news/manage') {
+          await newsService.action(raw);
+          broadcast();
+          return json(res, 200, snapshot());
+        }
+        const schema = z.discriminatedUnion('action', [
+          z.object({ action: z.literal('add'), source: z.unknown() }).strict(),
+          z
+            .object({
+              action: z.literal('enable'),
+              id: z.string().min(1).max(128),
+              enabled: z.boolean(),
+            })
+            .strict(),
+          z.object({ action: z.literal('refresh') }).strict(),
+        ]);
+        const cmd = schema.parse(raw);
+        if (cmd.action === 'add') newsSources.add(cmd.source);
+        else if (cmd.action === 'enable') newsSources.enable(cmd.id, cmd.enabled);
+        else await newsSources.refresh(Date.now(), director.news.state.categories);
+        newsService.save();
+        broadcast();
+        return json(res, 200, snapshot());
+      }
       if (req.method === 'POST' && path === '/api/command') {
         await reactionStudio.ready;
         if (!req.headers['content-type']?.startsWith('application/json'))
@@ -474,6 +541,8 @@ export function createStudioServer(
             details: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
           });
         const command = parsed.data;
+        if (newsService.generating && ['news', 'data-mode', 'program-mode'].includes(command.type))
+          return json(res, 409, { error: 'Espera a que termine la generación.' });
         if (command.type === 'data-mode') {
           const target = command.mode === 'LIVE' ? live.director : simulation;
           if (target !== director) {
@@ -485,7 +554,14 @@ export function createStudioServer(
               director.setVoiceProvider(originalVoices.get(director)!);
               originalVoices.delete(director);
             }
+            const newsState = structuredClone(director.news.state),
+              programMode = director.programMode;
             director = target;
+            director.news.state = newsState;
+            director.programMode = programMode;
+            director.news.state.current = null;
+            if (director.news.state.program?.status === 'running')
+              director.news.state.program.status = 'paused';
             director.settings = settings;
             director.profile = profile;
             if (director === live.director) live.resume();
@@ -520,6 +596,7 @@ export function createStudioServer(
             applyAvatar();
           }
         }
+        newsService.save();
         broadcast();
         return json(res, 200, snapshot());
       }
@@ -553,6 +630,8 @@ export function createStudioServer(
     }
   });
   const stop = () => {
+    newsService.save();
+    clearInterval(persistenceTimer);
     clearInterval(timer);
     live.pause();
     multi.chats.stop();
@@ -562,6 +641,10 @@ export function createStudioServer(
     for (const client of clients) client.end();
     server.close();
   };
-  server.on('close', () => clearInterval(timer));
-  return { server, director: simulation, live, multi, stop };
+  server.on('close', () => {
+    newsService.save();
+    clearInterval(persistenceTimer);
+    clearInterval(timer);
+  });
+  return { server, director: simulation, live, multi, newsService, stop };
 }

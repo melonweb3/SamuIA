@@ -1,3 +1,5 @@
+import { isNewsPresentation } from '../../../packages/shared/src/news';
+import { NewsGraphics } from './NewsGraphics';
 import { useState, type CSSProperties } from 'react';
 import type { StudioSnapshot } from '../../../packages/shared/src/index';
 import { studioScenery } from '../../../packages/core/src/scenery';
@@ -56,6 +58,7 @@ export function StudioScenery({ state }: { state: StudioSnapshot }) {
 
 export function StudioMatchGraphics({ state }: { state: StudioSnapshot }) {
   const scene = studioScenery(state);
+  if (isNewsPresentation(state)) return <NewsGraphics state={state} />;
   return (
     <>
       {state.settings.studioGraphics && (

@@ -7,6 +7,7 @@ import { VoiceStudioService } from '../../apps/server/src/voice-studio';
 import { referenceVideoFixture } from '../fixtures/reference-video';
 async function serve() {
   const app = createStudioServer({
+    newsStorageFile: null,
     reactionStudio: new ReactionStudioService({}, { directory: null }),
     voiceStudio: new VoiceStudioService({}, { directory: null }),
   });

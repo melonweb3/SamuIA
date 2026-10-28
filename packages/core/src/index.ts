@@ -1,3 +1,6 @@
+import { newsCommandSchema } from '../../news/src/schema';
+import { Newsroom, estimateSpeech, newsIsStale } from '../../news/src/index';
+import type { ProgramMode, NewsCue, NewsAction, NewsProgramConfig } from '../../shared/src/news';
 import { CommunityAnalyzer } from '../../community/src/index';
 import { relatedMatch } from '../../chat-engine/src/index';
 import type { ExternalChatMessage } from '../../shared/src/index';
@@ -44,6 +47,11 @@ import { CameraDirector, SceneManager, MockVoiceProvider } from './visual';
 export { SportsReactionScheduler, CameraDirector, SceneManager, AvatarAnimationController };
 export class ReactionDirector {
   dataMode: DataMode = 'SIMULATION';
+  programMode: ProgramMode = 'DEPORTES';
+  news = new Newsroom();
+  private newsCue: NewsCue | null = null;
+  private newsContextId: string | undefined;
+  private newsChatAtIndex = -1;
   dataFresh = true;
   animation: AvatarAnimationController;
   manager = new MatchManager();
@@ -91,13 +99,20 @@ export class ReactionDirector {
   get busy() {
     return ['THINKING', 'SPEAKING', 'REACTING'].includes(this.state);
   }
+  private get sportsActive() {
+    return (
+      this.programMode === 'DEPORTES' ||
+      (this.programMode === 'AUTOMÁTICO' &&
+        !['running', 'paused'].includes(this.news.state.program?.status ?? ''))
+    );
+  }
   /** Shared admission rule for automatic chat and guided simulation steps. */
   get readyForIntervention() {
     return (
       this.state === 'IDLE' &&
       !this.pendingChatId &&
       !this.chat.selectedId &&
-      !this.scheduler.sportsEventQueue.length &&
+      (!this.sportsActive || !this.scheduler.sportsEventQueue.length) &&
       !this.controls.length
     );
   }
@@ -106,7 +121,17 @@ export class ReactionDirector {
     now = Date.now(),
     policy: { externalOnly?: boolean; minimumPriority?: number; arrivalOrder?: boolean } = {},
   ): boolean {
-    if (!this.readyForIntervention || (this.dataMode === 'LIVE' && !this.dataFresh)) return false;
+    if (
+      !this.readyForIntervention ||
+      (this.dataMode === 'LIVE' && this.programMode === 'DEPORTES' && !this.dataFresh)
+    )
+      return false;
+    if (
+      (this.programMode === 'NOTICIAS' ||
+        (this.programMode === 'AUTOMÁTICO' && this.news.state.program)) &&
+      (!this.news.state.program?.config.interaction || this.news.state.program.status !== 'running')
+    )
+      return false;
     const messages = policy.arrivalOrder ? this.chat.messages : this.chat.pending();
     const message = messages.find(
       (m) =>
@@ -150,7 +175,10 @@ export class ReactionDirector {
     this.state = sports ? 'REACTING' : 'SPEAKING';
     this.scenes.receive(draft.decision.scene);
     this.camera.receive(draft.decision.camera, now, this.settings.cameraCooldown);
-    const durationMs = this.voice.durationMs(draft.decision.say);
+    const durationMs =
+      this.newsCue && !this.voice.audible
+        ? estimateSpeech(draft.decision.say) * 1000
+        : this.voice.durationMs(draft.decision.say);
     this.until = now + durationMs;
     const utteranceId = id();
     this.externalVoiceClock = false;
@@ -198,12 +226,39 @@ export class ReactionDirector {
     this.activeReaction = null;
     this.animation.stop(now);
     this.decision = normalDecision();
-    this.scenes.receive('futbol');
+    this.decision.scene = this.sportsActive ? 'futbol' : 'charlando';
+    this.scenes.receive(this.decision.scene);
     this.camera.reset();
     if (this.manager.mainMatchId) this.manager.focus(this.manager.mainMatchId, now);
   }
   command(cmd: StudioCommand, now = Date.now()) {
     switch (cmd.type) {
+      case 'program-mode':
+        if (cmd.mode !== this.programMode) {
+          this.playback.cancel();
+          this.chat.silence();
+          this.pendingChatId = null;
+          this.speakingChatId = null;
+          this.controls = [];
+          this.newsCue = null;
+          if (this.news.state.program?.status === 'running')
+            this.news.state.program.status = 'paused';
+          this.programMode = cmd.mode;
+          this.newsContextId = undefined;
+          this.reset(now);
+          this.state = 'IDLE';
+          this.until = now;
+          if (
+            cmd.mode === 'NOTICIAS' &&
+            this.dataMode === 'SIMULATION' &&
+            !this.news.state.stories.length
+          )
+            this.news.demo(now);
+        }
+        return;
+      case 'news':
+        this.newsCommand(newsCommandSchema.parse(cmd), now);
+        return;
       case 'avatar-settings':
         this.animation.configure(cmd.patch);
         this.settings.avatarEngine = structuredClone(this.animation.settings);
@@ -331,6 +386,12 @@ export class ReactionDirector {
         break;
       case 'control':
         if (cmd.action === 'silence') {
+          if (this.newsCue) {
+            if (this.news.state.program?.status === 'running')
+              this.news.state.program.status = 'paused';
+            this.newsCue = null;
+            this.news.state.current = null;
+          }
           this.playback.cancel();
           this.chat.silence();
           this.pendingChatId = null;
@@ -422,7 +483,8 @@ export class ReactionDirector {
           this.animation.settings.avatarEnabled)) &&
       current?.priority !== 'CRITICAL' &&
       current?.interruptible !== false &&
-      this.settings.autoReactions
+      this.settings.autoReactions &&
+      this.sportsActive
     ) {
       const critical = this.scheduler.sportsEventQueue.find((i) =>
         ['goal', 'red'].includes(i.event.type),
@@ -453,6 +515,7 @@ export class ReactionDirector {
     }
     this.manager.refresh(now);
     for (const m of this.manager.activeMatches) this.context.refresh(m, now);
+    if (this.state === 'THINKING' && this.speakingChatId) return;
     if (this.state === 'THINKING' && now >= this.until) {
       this.startChat(now);
       return;
@@ -462,6 +525,12 @@ export class ReactionDirector {
       if (this.speakingChatId) {
         this.chat.finish();
         this.speakingChatId = null;
+        if (this.programMode === 'NOTICIAS' || this.programMode === 'AUTOMÁTICO')
+          this.news.state.current = null;
+      }
+      if (this.newsCue) {
+        this.news.finish(this.newsCue);
+        this.newsCue = null;
       }
       this.reset(now);
       this.state = 'COOLDOWN';
@@ -482,6 +551,30 @@ export class ReactionDirector {
       this.animation.play(directiveForAnimation('thinking', 0.45, 'chat'), now);
       return;
     }
+    if (this.programMode === 'NOTICIAS' || this.programMode === 'AUTOMÁTICO') {
+      const program = this.news.state.program;
+      if (
+        program?.status === 'running' &&
+        program.config.interaction &&
+        program.index > 1 &&
+        this.newsChatAtIndex !== program.index &&
+        this.respondToPendingChat(now)
+      ) {
+        this.newsChatAtIndex = program.index;
+        return;
+      }
+      const cue = this.news.next(now);
+      if (cue) {
+        this.deliverNews(cue, now);
+        return;
+      }
+      if (
+        this.news.state.program?.status === 'running' &&
+        this.news.state.program.config.interaction
+      )
+        this.respondToPendingChat(now);
+    }
+    if (!this.sportsActive) return;
     const item = this.scheduler.take(this.manager, this.settings, now);
     if (item) {
       this.startSports(item, now);
@@ -530,7 +623,7 @@ export class ReactionDirector {
       }
     }
   }
-  private startChat(now: number) {
+  private async startChat(now: number) {
     if (!this.pendingChatId) {
       this.state = 'IDLE';
       return;
@@ -543,8 +636,15 @@ export class ReactionDirector {
       this.manager.activeMatches.some((m) => m.id === message.relatedMatchId)
     )
       this.manager.focus(message.relatedMatchId, now);
-    let draft = this.brain.respond(message, this.manager, this.outputProfile);
+    const newsStory = this.news.state.stories.find(
+      (s) => s.id === this.newsContextId && !newsIsStale(s.publishedAt, now),
+    );
+    let draft =
+      this.programMode === 'NOTICIAS' || (this.programMode === 'AUTOMÁTICO' && this.newsContextId)
+        ? this.brain.newsAnswer(message.message, newsStory, this.outputProfile)
+        : this.brain.respond(message, this.manager, this.outputProfile);
     if (
+      this.programMode === 'DEPORTES' &&
       /sentimiento|tendencia|opina.*(twitch|youtube|kick|tiktok)|resum.*chat/i.test(message.message)
     ) {
       const match = this.manager.activeMatches.find((m) => m.id === message.relatedMatchId);
@@ -561,6 +661,49 @@ export class ReactionDirector {
       }
     }
     draft.sourceIds = [...new Set([...draft.sourceIds, message.id])];
+    if (
+      this.programMode === 'NOTICIAS' ||
+      (this.programMode === 'AUTOMÁTICO' && this.newsContextId)
+    )
+      this.news.state.current = {
+        ...this.brain.newsCue(
+          newsStory ?? null,
+          'PREGUNTAS DEL CHAT',
+          'resumen',
+          this.outputProfile,
+        ),
+        text: draft.decision.say,
+        scene: 'chat',
+      };
+    if (
+      this.brain.newsResponder &&
+      (this.programMode === 'NOTICIAS' || (this.programMode === 'AUTOMÁTICO' && this.newsContextId))
+    ) {
+      const mode = this.programMode,
+        revision = newsStory?.revision;
+      const answer = await this.brain.newsResponder(
+        message.message,
+        newsStory ? structuredClone(newsStory) : undefined,
+        draft.decision.say,
+      );
+      if (
+        this.speakingChatId !== message.id ||
+        this.programMode !== mode ||
+        (newsStory && (newsStory.revision !== revision || newsStory.review !== 'approved'))
+      ) {
+        if (this.speakingChatId === message.id) {
+          this.chat.silence();
+          this.speakingChatId = null;
+          this.news.state.current = null;
+          this.state = 'IDLE';
+        }
+        return;
+      }
+      draft.decision.say = answer;
+      if (draft.reaction) draft.reaction.text = answer;
+      if (this.news.state.current?.scene === 'chat') this.news.state.current.text = answer;
+      now = Date.now();
+    }
     this.perform(draft, `Chat · ${message.username}`, now);
   }
   /** Connect real TTS playback callbacks here; the same clock drives speech and animation. */
@@ -752,6 +895,7 @@ export class ReactionDirector {
     return true;
   }
   private startSports(item: import('../../shared/src/index').SportsEventQueueItem, now: number) {
+    if (this.programMode === 'AUTOMÁTICO') this.newsContextId = undefined;
     const m = this.manager.get(item.event.matchId);
     this.manager.focus(m.id, now);
     const draft = this.commentary.event(m, item.event, this.outputProfile, item.groupedCount);
@@ -782,6 +926,125 @@ export class ReactionDirector {
       )
         a.disposition = 'reacted';
     this.perform(draft, `${eventLabels[item.event.type]} · ${m.home.shortName}`, now, true);
+  }
+  private deliverNews(cue: NewsCue, now: number) {
+    this.newsCue = cue;
+    if (cue.storyId) this.newsContextId = cue.storyId;
+    this.news.state.current = cue;
+    this.perform(this.brain.presentNews(cue), `Noticias · ${cue.section}`, now);
+  }
+  buildNewsProgram(config: NewsProgramConfig, now = Date.now(), includePending = false) {
+    if (this.news.state.program?.status === 'running' || this.newsCue)
+      throw Error('Detén el programa antes de preparar otra escaleta.');
+    this.newsChatAtIndex = -1;
+    this.newsContextId = undefined;
+    this.news.build(
+      config,
+      (story, section) => this.brain.newsCue(story, section, config.format, this.outputProfile),
+      now,
+      includePending,
+    );
+  }
+  private newsCommand(cmd: NewsAction, now: number) {
+    const p = this.news.state.program;
+    switch (cmd.action) {
+      case 'demo':
+      case 'demo-breaking':
+        if (this.dataMode !== 'SIMULATION')
+          throw Error('Las noticias ficticias solo están disponibles en SIMULATION.');
+        this.news.demo(now, cmd.action === 'demo-breaking');
+        break;
+      case 'categories':
+        this.news.state.categories = [...cmd.categories];
+        break;
+      case 'review':
+        this.news.story(cmd.id).review = cmd.review;
+        if (p && this.news.referencesStory(cmd.id)) {
+          p.approved = false;
+          if (p.status === 'running') p.status = 'paused';
+        }
+        break;
+      case 'verify': {
+        const story = this.news.story(cmd.id);
+        if (story.simulated) throw Error('Una ficción no puede verificarse como noticia real.');
+        story.verification = 'confirmed';
+        story.verificationNote = cmd.note;
+        if (p) p.approved = false;
+        break;
+      }
+      case 'build':
+        this.buildNewsProgram(cmd.config, now);
+        break;
+      case 'edit': {
+        if (!p || p.status === 'running' || this.newsCue)
+          throw Error('Pausa y termina la intervención antes de editar.');
+        const index = p.cues.findIndex((c) => c.id === cmd.id);
+        if (index < 0) throw Error('Intervención no encontrada.');
+        const [cue] = p.cues.splice(index, 1);
+        cue.text = cmd.text;
+        cue.scene = cmd.scene;
+        cue.estimatedSeconds = estimateSpeech(cue.text);
+        p.cues.splice(Math.max(0, Math.min(cmd.position, p.cues.length)), 0, cue);
+        p.approved = false;
+        p.index = 0;
+        p.status = 'draft';
+        p.estimatedSeconds = p.cues.reduce((n, c) => n + c.estimatedSeconds, 0);
+        break;
+      }
+      case 'approve':
+        this.news.approve(now);
+        break;
+      case 'start':
+        if (!['NOTICIAS', 'AUTOMÁTICO'].includes(this.programMode))
+          throw Error('Selecciona NOTICIAS o AUTOMÁTICO.');
+        if (!p?.approved) throw Error('Revisa y aprueba la escaleta antes de comenzar.');
+        if (p.status === 'completed' || p.status === 'stopped') p.index = 0;
+        this.news.approve(now);
+        p.status = 'running';
+        if (this.playback.snapshot().status === 'paused') this.resumeVoice(now);
+        this.tick(now);
+        break;
+      case 'pause':
+        if (p) p.status = 'paused';
+        if (this.newsCue || (this.programMode === 'NOTICIAS' && this.speakingChatId))
+          this.pauseVoice(now);
+        break;
+      case 'stop':
+        if (p) p.status = 'stopped';
+        if (this.newsCue || this.programMode === 'NOTICIAS') {
+          this.chat.silence();
+          this.speakingChatId = null;
+          this.pendingChatId = null;
+          this.playback.cancel();
+          this.newsCue = null;
+          this.news.state.current = null;
+          this.reset(now);
+          this.state = 'IDLE';
+        }
+        break;
+      case 'finish':
+        if (this.news.state.current) {
+          const speech = this.animation.frame(now).speech;
+          if (speech) this.voiceEnded(speech.id, now);
+        }
+        break;
+      case 'breaking': {
+        if (!['NOTICIAS', 'AUTOMÁTICO'].includes(this.programMode))
+          throw Error('La última hora requiere una modalidad informativa.');
+        const cue = this.news.breaking(
+          cmd.id,
+          (story) => this.brain.newsCue(story, 'ÚLTIMA HORA', 'ultima-hora', this.outputProfile),
+          now,
+        );
+        this.playback.cancel();
+        if (this.speakingChatId) {
+          this.chat.silence();
+          this.speakingChatId = null;
+        }
+        this.deliverNews(cue, now);
+        break;
+      }
+    }
   }
   pauseVoice(now = Date.now()) {
     this.playback.pause(now);
@@ -831,6 +1094,8 @@ export class ReactionDirector {
     const animation = this.animation.frame(now);
     return structuredClone({
       mode: 'DEMO',
+      programMode: this.programMode,
+      news: this.news.snapshot(now),
       dataMode: this.dataMode,
       community: this.communityAnalyzer.summary(undefined, now),
       voice: {

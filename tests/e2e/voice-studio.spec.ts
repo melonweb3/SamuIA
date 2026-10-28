@@ -28,7 +28,7 @@ function fixtureStudio() {
 }
 async function serve(voiceStudio: VoiceStudioService) {
   await voiceStudio.ready;
-  const app = createStudioServer({ voiceStudio });
+  const app = createStudioServer({ voiceStudio, newsStorageFile: null });
   await new Promise<void>((r) => app.server.listen(0, '127.0.0.1', r));
   return { app, base: `http://127.0.0.1:${(app.server.address() as AddressInfo).port}` };
 }

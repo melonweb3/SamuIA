@@ -1,3 +1,6 @@
+import type { NewsStory, NewsFormat, NewsCue } from '../../shared/src/news';
+import { id } from '../../shared/src/index';
+import { estimateSpeech } from '../../news/src/index';
 import {
   normalDecision,
   normalize,
@@ -16,6 +19,12 @@ import { directiveForAnimation, type AvatarAnimation } from '../../shared/src/in
 import { stateAnimation } from '../../avatar-engine/src/contracts';
 export { CommentaryEngine, LiveMatchContextService };
 export class SamuIABrain {
+  /** Optional server adapter; portable generation remains entirely local. */
+  newsResponder?: (
+    question: string,
+    story: NewsStory | undefined,
+    local: string,
+  ) => Promise<string>;
   constructor(public commentary: CommentaryEngine) {}
   /** Compatibility controls generate content here, just like operator interventions. */
   control(
@@ -43,6 +52,122 @@ export class SamuIABrain {
       };
     else decision.say = 'Volvemos al lío, con calma.';
     return { decision, recallIds: [], sourceIds: [] };
+  }
+  newsCue(
+    story: NewsStory | null,
+    section: string,
+    format: NewsFormat,
+    profile: AICommentatorProfile,
+  ): NewsCue {
+    let text = '';
+    if (story) {
+      const status = story.simulated
+        ? 'Demostración ficticia. No es una noticia real.'
+        : story.verification === 'confirmed'
+          ? 'Información revisada por el operador.'
+          : story.verification === 'corroborated'
+            ? 'Coinciden varias publicaciones; la verificación editorial sigue pendiente.'
+            : 'Información de una sola fuente, pendiente de verificación independiente.';
+      const limit = {
+        titular: 37,
+        resumen: 75,
+        explicacion: 150,
+        analisis: 180,
+        'ultima-hora': 75,
+      }[format];
+      const facts = `${story.title}. ${format === 'titular' ? '' : story.summary}`.trim();
+      // Grounded local generator: never extends a short source to fill a time slot.
+      const attribution = `Fuente principal: ${story.sources[0]?.sourceName ?? 'sin fuente identificada'}.`;
+      const analysis =
+        format === 'analisis'
+          ? 'Este análisis se limita a lo publicado; no disponemos de datos adicionales para establecer causas o consecuencias.'
+          : '';
+      const availableWords = Math.max(
+        1,
+        limit - `${status} ${attribution} ${analysis}`.split(/\s+/).length,
+      );
+      text =
+        `${status} ${facts.split(/\s+/).slice(0, availableWords).join(' ')}. ${attribution} ${analysis}`.trim();
+    } else
+      text =
+        section === 'INTRODUCCIÓN'
+          ? `Hola, soy ${profile.name}. Comenzamos SamuIA News. Distinguiremos la información recibida de lo que todavía está por comprobar. Vamos allá.`
+          : section === 'DESPEDIDA'
+            ? 'Hasta aquí el informativo. Gracias por acompañarnos. Conservamos las fuentes y seguiremos atentos a las actualizaciones.'
+            : section === 'PREGUNTAS DEL CHAT'
+              ? 'Abrimos un turno para vuestras preguntas sobre las noticias presentadas. Responderé con el contexto disponible, sin inventar información.'
+              : 'Estos son nuestros titulares.';
+    return {
+      id: id(),
+      section,
+      storyId: story?.id,
+      storyRevision: story?.revision,
+      text,
+      headline: story?.title ?? section,
+      scene:
+        section === 'DESPEDIDA'
+          ? 'despedida'
+          : section === 'TITULARES'
+            ? 'titulares'
+            : section === 'PREGUNTAS DEL CHAT'
+              ? 'chat'
+              : story
+                ? 'texto'
+                : 'estudio',
+      sourceIds: story?.sources.map((s) => s.id) ?? [],
+      estimatedSeconds: estimateSpeech(text),
+    };
+  }
+  presentNews(cue: NewsCue): CommentaryDraft {
+    return {
+      decision: {
+        ...normalDecision(),
+        say: cue.text,
+        scene: 'charlando',
+        camera: 'plano_medio',
+        emotion: 'serio',
+        gesture: 'asentir',
+        energy: 40,
+        avatar: directiveForAnimation('talking', 0.4, 'camera'),
+      },
+      sourceIds: [...cue.sourceIds],
+      recallIds: [],
+    };
+  }
+  newsAnswer(
+    question: string,
+    story: NewsStory | undefined,
+    profile: AICommentatorProfile,
+  ): CommentaryDraft {
+    let say =
+      'Todavía no hay una noticia actual en contexto. Selecciona una pieza del informativo para que pueda responder con sus fuentes.';
+    if (story) {
+      const q = normalize(question);
+      say = /donde|lugar/.test(q)
+        ? story.location
+          ? `El lugar indicado por la fuente es ${story.location}.`
+          : 'La fuente disponible no concreta el lugar; no voy a inventarlo.'
+        : /cuando|fecha/.test(q)
+          ? `La publicación está fechada el ${new Date(story.publishedAt).toLocaleString('es-ES', { timeZone: 'Europe/Madrid' })}. Es la fecha de publicación, no necesariamente la del acontecimiento.`
+          : /fuente|verific|confirm/.test(q)
+            ? `Fuentes: ${story.sources.map((s) => s.sourceName).join(', ')}. ${story.verification === 'confirmed' ? 'El operador ha registrado una comprobación editorial.' : 'La aparición en un medio no basta para considerar la información verificada.'}`
+            : /resum|pasado|noticia|explica/.test(q)
+              ? story.summary || story.title
+              : 'No dispongo de datos suficientes en esta noticia para responder a esa pregunta. Podemos consultar las fuentes antes de afirmarlo.';
+      if (story.simulated) say = `Esto pertenece a una demostración ficticia. ${say}`;
+    }
+    const draft = this.operator({
+      id: id(),
+      source: 'Chat · Noticias',
+      text: say,
+      emotion: 'neutral',
+      intensity: Math.min(0.5, profile.emotionLevel / 100),
+      priority: 'NORMAL',
+      interruptible: true,
+      timestamp: Date.now(),
+    });
+    draft.sourceIds = story?.sources.map((s) => s.id) ?? [];
+    return draft;
   }
   operator(reaction: ReactionEvent): CommentaryDraft {
     const clips: Partial<Record<ReactionEvent['emotion'], AvatarAnimation>> = {

@@ -1,3 +1,5 @@
+import { NewsDesk } from './NewsDesk';
+import { programModes, type ProgramMode } from '../../../packages/shared/src/news';
 import { MultiplatformAdmin } from './MultiplatformAdmin';
 import { VoiceStudio } from './VoiceStudio';
 import { VoiceStudioPlayer } from './VoiceStudioPlayer';
@@ -214,6 +216,18 @@ export function App({ session }: { session?: ReactionDirector }) {
           </span>
           <div>
             <select
+              aria-label="Modalidad de programa"
+              value={state?.programMode ?? 'DEPORTES'}
+              disabled={!state}
+              onChange={(e) =>
+                void send({ type: 'program-mode', mode: e.target.value as ProgramMode })
+              }
+            >
+              {programModes.map((mode) => (
+                <option key={mode}>{mode}</option>
+              ))}
+            </select>
+            <select
               aria-label="Modo de datos"
               value={state?.dataMode ?? 'SIMULATION'}
               disabled={!state}
@@ -290,7 +304,31 @@ export function App({ session }: { session?: ReactionDirector }) {
           {state && (
             <>
               {state.dataMode === 'LIVE' && <LiveStatus state={state} />}
-              {page === 'Dashboard' && <Dashboard state={state} send={send} />}{' '}
+              {page === 'Dashboard' &&
+                (['NOTICIAS', 'AUTOMÁTICO'].includes(state.programMode) ? (
+                  <NewsDesk
+                    state={state}
+                    send={send}
+                    portable={!!session}
+                    onState={(next) =>
+                      setState((previous) =>
+                        previous && previous.now > next.now ? previous : next,
+                      )
+                    }
+                  />
+                ) : state.programMode === 'CHAT' ? (
+                  <ChatPanel state={state} send={send} full />
+                ) : (
+                  <>
+                    <Dashboard state={state} send={send} />
+                    {state.programMode === 'EVENTOS' && (
+                      <div className="info-banner">
+                        EVENTOS: utiliza las intervenciones del operador y la salida compartida. Los
+                        motores específicos de eventos se incorporarán en una fase posterior.
+                      </div>
+                    )}
+                  </>
+                ))}{' '}
               {page === 'Centro de Partidos' && <MatchCenter state={state} send={send} />}{' '}
               {page === 'Radar SamuIA' && (
                 <div className="two-col">

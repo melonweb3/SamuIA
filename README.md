@@ -191,3 +191,20 @@ Abre **Avatar / Reaction Studio**, escribe «GOOOOOOOL DEL CELTA!», elige emoci
 Incluye 25 recetas 2D, variantes con cooldown y selección sin repetición inmediata, ajustes persistentes y biblioteca privada de vídeos de referencia. Los vídeos se guardan y clasifican; **todavía no se extraen sus gestos y nunca se muestran como avatar o salida de emisión**. Las cinco composiciones y los originales conservan sus bytes. El fondo, escritorio y micrófono permanecen fijos; cabeza, torso, párpados y boca tienen movimiento localizado. No equivale a un rig facial completo ni a mocap.
 
 La prueba manual y la biblioteca funcionan sin backend en el HTML actualizado; Flite, proveedores remotos, LIVE y emisión externa requieren el servidor. [Guía v9: arquitectura, archivos, pruebas, almacenamiento, uso manual, límites y siguientes fases](docs/avatar-engine-v9.md).
+
+## SamuIA News · fase 2
+
+En Dashboard selecciona **NOTICIAS** en **Modalidad de programa** y conserva
+**SIMULATION**. Aprueba contenidos ficticios, crea y revisa la escaleta, apruébala
+y pulsa **Iniciar informativo**. Incluye edición, pausa, chat contextual, última
+hora autorizada, rótulos y ticker en estudio y emisión. Reutiliza el cerebro,
+controladores y salidas actuales. [Guía de uso, fuentes y límites](docs/samuia-news.md).
+
+## SamuIA News · fase 3
+
+El servidor incorpora el SDK oficial de OpenAI, los modos **SIMULACIÓN**, **IA REAL**
+y **AUTOMÁTICO CON FALLBACK**, límites diarios y caché. En el mismo panel puedes
+**Generar informativo**, revisar noticias y guiones, guardar y recuperar programas.
+Fuentes, noticias, preferencias e historial se conservan en un archivo privado
+versionado; las emisiones nunca se reanudan automáticamente al reiniciar.
+[Configuración de OpenAI, RSS, almacenamiento y alcance real](docs/samuia-news-phase-3.md).

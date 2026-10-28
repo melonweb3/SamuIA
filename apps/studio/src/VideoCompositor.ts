@@ -1,3 +1,4 @@
+import { isNewsPresentation } from '../../../packages/shared/src/news';
 import type { Composition, StudioSnapshot } from '../../../packages/shared/src/index';
 import { studioScenery } from '../../../packages/core/src/scenery';
 import {
@@ -98,11 +99,16 @@ export class VideoCompositor {
     ctx.fillRect(0, 0, width, this.canvas.height);
     ctx.fillStyle = '#173341';
     ctx.fillRect(24, 24, width - 48, vertical ? 120 : 82);
-    const m = scene.match;
+    const newsMode = isNewsPresentation(state);
+    const cue = newsMode ? state.news.current : null;
+    const story = state.news.stories.find((s) => s.id === cue?.storyId);
+    const m = newsMode ? undefined : scene.match;
     this.text(
       m
         ? `${m.home.shortName}  ${m.score.home} – ${m.score.away}  ${m.away.shortName}`
-        : 'SamuIA · Esperando partido',
+        : newsMode
+          ? (cue?.headline ?? 'SamuIA News · Titulares')
+          : 'SamuIA · Esperando partido',
       40,
       vertical ? 68 : 63,
       width - 80,
@@ -112,7 +118,9 @@ export class VideoCompositor {
     this.text(
       m
         ? `${m.minute}′ · ${scene.competition} · ${state.dataMode}`
-        : `Programa propio · ${state.dataMode}`,
+        : newsMode
+          ? `SAMUIA NEWS · ${cue?.scene ?? 'estudio'} · ${story?.simulated ? 'DEMO FICTICIA' : story?.verification === 'confirmed' ? 'Revisión editorial' : 'Sin confirmar'} · ${new Date(state.now).toLocaleTimeString('es-ES', { timeZone: 'Europe/Madrid' })}`
+          : `Programa propio · ${state.dataMode}`,
       40,
       vertical ? 113 : 91,
       width - 80,
@@ -178,17 +186,50 @@ export class VideoCompositor {
       1,
       '#a1b4bc',
     );
+    if (newsMode)
+      this.text(
+        story
+          ? `Fuentes: ${story.sources.map((s) => s.sourceName).join(' · ')} · ${new Date(story.publishedAt).toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid' })}`
+          : 'Informativo de SamuIA',
+        24,
+        vertical ? below - 30 : below - 42,
+        width - 48,
+        14,
+        1,
+        '#96cbd0',
+      );
     const community = state.community;
-    this.text(
-      community.topics[0]
-        ? `Se comenta: ${community.topics[0].topic} · ${community.topics[0].users} participantes`
-        : 'La comunidad forma parte de este directo',
-      24,
-      vertical ? below + 50 : below + 17,
-      width - 48,
-      22,
-      2,
-    );
+    if (newsMode) {
+      const ticker =
+        state.news.stories
+          .filter(
+            (s) =>
+              s.review === 'approved' && !s.stale && state.news.categories.includes(s.category),
+          )
+          .map((s) => s.title)
+          .join('  •  ') || 'Esperando noticias aprobadas';
+      const tickerY = vertical ? below + 50 : below + 17;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(24, tickerY - 25, width - 48, 32);
+      ctx.clip();
+      ctx.font = '22px sans-serif';
+      ctx.fillStyle = '#bce6ec';
+      const textWidth = ctx.measureText(ticker).width;
+      const x = width - ((now * 0.055) % (textWidth + width));
+      ctx.fillText(ticker, x, tickerY);
+      ctx.restore();
+    } else
+      this.text(
+        community.topics[0]
+          ? `Se comenta: ${community.topics[0].topic} · ${community.topics[0].users} participantes`
+          : 'La comunidad forma parte de este directo',
+        24,
+        vertical ? below + 50 : below + 17,
+        width - 48,
+        22,
+        2,
+      );
     this.text(
       state.voice.audible
         ? `Voz del comentarista · ${frame.speech?.source === 'audio-amplitude' ? 'amplitud de audio' : 'sincronización aproximada'}`

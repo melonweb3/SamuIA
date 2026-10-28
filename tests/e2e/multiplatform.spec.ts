@@ -7,7 +7,7 @@ import { readFile } from 'node:fs/promises';
 test('administración: chats normalizados, filtros, formatos y capacidades aisladas', async ({
   page,
 }) => {
-  const app = createStudioServer();
+  const app = createStudioServer({ newsStorageFile: null });
   await new Promise<void>((resolve) => app.server.listen(0, '127.0.0.1', resolve));
   const base = `http://127.0.0.1:${(app.server.address() as AddressInfo).port}`;
   let releaseChat: (() => void) | undefined;
@@ -71,6 +71,7 @@ test('señal propia real: canvas + audio TTS → WebM → FFmpeg H.264/AAC en am
 }) => {
   test.setTimeout(60000);
   const app = createStudioServer({
+    newsStorageFile: null,
     multiplatformFactory: (receive) => createMultiplatform(receive, { BROADCAST_TTS: 'flite' }),
   });
   await new Promise<void>((resolve) => app.server.listen(0, '127.0.0.1', resolve));

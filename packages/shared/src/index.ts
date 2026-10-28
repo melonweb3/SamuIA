@@ -1,3 +1,5 @@
+import type { ProgramMode, NewsState, NewsAction } from './news';
+export * from './news';
 import type { CommunitySummary, ExternalChatMessage, MultiplatformState } from './multiplatform';
 export * from './multiplatform';
 import type { DataMode, LiveDiagnostics, LiveIncident, LiveMatchRecord } from './live';
@@ -297,6 +299,29 @@ export interface CommentaryDraft {
   sourceIds: string[];
 }
 export interface StudioSnapshot {
+  newsService?: {
+    config: {
+      mode: 'SIMULACIÓN' | 'IA REAL' | 'AUTOMÁTICO CON FALLBACK';
+      model: string;
+      maxOutputTokens: number;
+      dailyTokenLimit: number;
+      dailyCallLimit: number;
+    };
+    configured: boolean;
+    status: string;
+    usage: { day: string; calls: number; tokens: number };
+    approximateCost: string;
+    archive: { id: string; at: number; duration: number }[];
+    schedules: unknown[];
+    broadcasts: { at: number; status: string; duration: number; categories: string[] }[];
+    events: { at: number; code: string }[];
+    updates: { at: number; sourceId: string; received: number; ok: boolean }[];
+    refreshSeconds: number;
+    storageError: string | null;
+    generating: boolean;
+  };
+  programMode: ProgramMode;
+  news: NewsState;
   reactionLibrary?: import('../../avatar-engine/src/contracts').ReactionAsset[];
   motionReferences?: import('../../avatar-engine/src/contracts').MotionReference[];
   avatarStorageError?: string | null;
@@ -338,6 +363,8 @@ export interface StudioSnapshot {
   now: number;
 }
 export type StudioCommand =
+  | { type: 'program-mode'; mode: ProgramMode }
+  | ({ type: 'news' } & NewsAction)
   | {
       type: 'avatar-settings';
       patch: Partial<import('../../avatar-engine/src/contracts').AvatarEngineSettings>;
